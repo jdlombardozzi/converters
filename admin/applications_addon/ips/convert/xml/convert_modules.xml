@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<moduleexport>
+  <modulegroup>
+    <module>
+      <sys_module_title>Converters</sys_module_title>
+      <sys_module_application>convert</sys_module_application>
+      <sys_module_key>setup</sys_module_key>
+      <sys_module_description>Sets up IPS conversion tools</sys_module_description>
+      <sys_module_version>1.0</sys_module_version>
+      <sys_module_parent/>
+      <sys_module_protected>0</sys_module_protected>
+      <sys_module_visible>1</sys_module_visible>
+      <sys_module_tables/>
+      <sys_module_hooks/>
+      <sys_module_position>1</sys_module_position>
+      <sys_module_admin>1</sys_module_admin>
+    </module>
+    <module>
+      <sys_module_title>Converters: IP.Board</sys_module_title>
+      <sys_module_application>convert</sys_module_application>
+      <sys_module_key>board</sys_module_key>
+      <sys_module_description>IP.Board Converters</sys_module_description>
+      <sys_module_version>3.0</sys_module_version>
+      <sys_module_parent/>
+      <sys_module_protected>0</sys_module_protected>
+      <sys_module_visible>1</sys_module_visible>
+      <sys_module_tables/>
+      <sys_module_hooks/>
+      <sys_module_position>2</sys_module_position>
+      <sys_module_admin>1</sys_module_admin>
+    </module>
+    <module>
+      <sys_module_title>Converters: IP.Calendar</sys_module_title>
+      <sys_module_application>convert</sys_module_application>
+      <sys_module_key>calendar</sys_module_key>
+      <sys_module_description>IP.Calendar Converters</sys_module_description>
+      <sys_module_version>3.0</sys_module_version>
+      <sys_module_parent/>
+      <sys_module_protected>0</sys_module_protected>
+      <sys_module_visible>1</sys_module_visible>
+      <sys_module_tables/>
+      <sys_module_hooks/>
+      <sys_module_position>2</sys_module_position>
+      <sys_module_admin>1</sys_module_admin>
+    </module>
+    <module>
+      <sys_module_title>Converters: IP.Blog</sys_module_title>
+      <sys_module_application>convert</sys_module_application>
+      <sys_module_key>blog</sys_module_key>
+      <sys_module_description>IP.Blog Converters</sys_module_description>
+      <sys_module_version>2.0</sys_module_version>
+      <sys_module_parent/>
+      <sys_module_protected>0</sys_module_protected>
+      <sys_module_visible>1</sys_module_visible>
+      <sys_module_tables/>
+      <sys_module_hooks/>
+      <sys_module_position>3</sys_module_position>
+      <sys_module_admin>1</sys_module_admin>
+    </module>
+    <module>
+      <sys_module_title>Converters: IP.Gallery</sys_module_title>
+      <sys_module_application>convert</sys_module_application>
+      <sys_module_key>gallery</sys_module_key>
+      <sys_module_description>IP.Gallery Converters</sys_module_description>
+      <sys_module_version>3.0</sys_module_version>
+      <sys_module_parent/>
+      <sys_module_protected>0</sys_module_protected>
+      <sys_module_visible>1</sys_module_visible>
+      <sys_module_tables/>
+      <sys_module_hooks/>
+      <sys_module_position>4</sys_module_position>
+      <sys_module_admin>1</sys_module_admin>
+    </module>
+    <module>
+      <sys_module_title>Converters: IP.Downloads</sys_module_title>
+      <sys_module_application>convert</sys_module_application>
+      <sys_module_key>downloads</sys_module_key>
+      <sys_module_description>IP.Downloads Converters</sys_module_description>
+      <sys_module_version>2.0</sys_module_version>
+      <sys_module_parent/>
+      <sys_module_protected>0</sys_module_protected>
+      <sys_module_visible>1</sys_module_visible>
+      <sys_module_tables/>
+      <sys_module_hooks/>
+      <sys_module_position>5</sys_module_position>
+      <sys_module_admin>1</sys_module_admin>
+    </module>
+    <module>
+		<sys_module_title>Converters: IP.Content</sys_module_title>
+		<sys_module_application>convert</sys_module_application>
+		<sys_module_key>ccs</sys_module_key>
+		<sys_module_description>IP.Content Converters</sys_module_description>
+		<sys_module_version>2.1</sys_module_version>
+		<sys_module_parent />
+		<sys_module_protected>0</sys_module_protected>
+		<sys_module_tables />
+		<sys_module_hooks />
+		<sys_module_position>6</sys_module_position>
+		<sys_module_admin>1</sys_module_admin>
+	</module>
+	<module>
+		<sys_module_title>Converters: IP.Nexus</sys_module_title>
+		<sys_module_application>convert</sys_module_application>
+		<sys_module_key>nexus</sys_module_key>
+		<sys_module_description>IP.Nexus Converters</sys_module_description>
+		<sys_module_version>1.3</sys_module_version>
+		<sys_module_parent />
+		<sys_module_protected>0</sys_module_protected>
+		<sys_module_tables />
+		<sys_module_hooks />
+		<sys_module_position>7</sys_module_position>
+		<sys_module_admin>1</sys_module_admin>
+	</module>
+  </modulegroup>
+</moduleexport>
