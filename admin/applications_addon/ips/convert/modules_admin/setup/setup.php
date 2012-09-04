@@ -3,14 +3,14 @@
  * IPS Converters
  * Application Files
  * Sets up a conversion
- * Last Update: $Date: 2009-11-16 17:54:23 +0100(lun, 16 nov 2009) $
- * Last Updated By: $Author: jason $
+ * Last Update: $Date: 2012-02-24 01:02:49 +0000 (Fri, 24 Feb 2012) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
- * @copyright	(c) 2009 Invision Power Services, Inc.
+ * @copyright	© 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 383 $
+ * @version		$Revision: 624 $
  */
 
 
@@ -79,10 +79,12 @@ class admin_convert_setup_setup extends ipsCommand
 		{
 			$extra .= $this->html->convertApp('calendar', 'IP.Calendar');
 		}
-		if (is_dir(IPS_ROOT_PATH.'/applications_addon/other/subscriptions'))
+		/*
+		No longer an IPS product.
+		if (is_dir(IPS_ROOT_PATH.'/applications_addon/other/subscriptions') && !IPSLib::appIsInstalled ( 'nexus' ))
 		{
 			$extra .= $this->html->convertApp('subscriptions', 'IP.Subscriptions');
-		}
+		}*/
 		if (is_dir(IPS_ROOT_PATH.'/applications_addon/ips/blog'))
 		{
 			$extra .= $this->html->convertApp('blog', 'IP.Blog');
@@ -102,6 +104,10 @@ class admin_convert_setup_setup extends ipsCommand
 		if (is_dir(IPS_ROOT_PATH.'/applications_addon/other/tracker'))
 		{
 			$extra .= $this->html->convertApp('tracker', 'IP.Tracker');
+		}
+		if (is_dir ( IPS_ROOT_PATH . '/applications_addon/ips/nexus' ) )
+		{
+			$extra .= $this->html->convertApp ( 'nexus', 'IP.Nexus' );
 		}
 
 		$this->registry->output->html .= $this->html->convertShowSoftware($extra);
@@ -128,6 +134,10 @@ class admin_convert_setup_setup extends ipsCommand
 			case 'subscriptions':
 				$name = 'IP.Subscriptions';
 				break;
+				
+			case 'nexus':
+				$name = 'IP.Nexus';
+				break;
 
 			case 'blog':
 				$name = 'IP.Blog';
@@ -146,7 +156,7 @@ class admin_convert_setup_setup extends ipsCommand
 				break;
 
 			case 'ccs':
-				$name = 'IP.CCS';
+				$name = 'IP.Content';
 				break;
 
 			default:
@@ -211,6 +221,13 @@ class admin_convert_setup_setup extends ipsCommand
 
 		elseif ($this->request['parent'])
 		{
+			// If parent is "NO PARENT" we need to find information
+			if ( $this->request['parent'] == "x" )
+			{
+				$this->registry->output->html .= $this->html->convertShowOptions2();
+				return;
+			}
+			
 			// Do we need new db info?
 			$chosenparent = $this->DB->buildAndFetch( array( 'select' => '*', 'from' => 'conv_apps', 'where' => "app_id='{$this->request['parent']}'" ) );
 			if (!$this->request['newdb_'.$chosenparent['app_key']])
