@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Calendar 3.0 Converters
  * vBulletin
- * Last Update: $Date: 2010-03-19 11:03:12 +0100(ven, 19 mar 2010) $
- * Last Updated By: $Author: terabyte $
+ * Last Update: $Date: 2011-07-12 19:47:24 +0100 (Tue, 12 Jul 2011) $
+ * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 437 $
+ * @version		$Revision: 549 $
  */
 
 
@@ -228,12 +228,12 @@
 					'event_perms'		=> '*',
 					'event_smilies'		=> $row['allowsmilies'],
 					'event_approved'	=> $row['visible'],
-					'event_unixstamp'	=> $row['dateline'],
+					'event_saved'		=> $row['dateline'],
 					'event_recurring'	=> $row['recurring'],
-					'event_tz'			=> $row['utc'],
-					'event_unix_from'	=> $row['dateline_from'],
-					'event_unix_to'		=> $row['dateline_to'],
-					);
+					//'event_tz'			=> $row['utc'],
+					'event_start_date'	=> date ( 'Y-m-d H:i:s', $row['dateline_from'] ),
+					'event_end_date'	=> date ( 'Y-m-d H:i:s', $row['dateline_to'] ),
+				);
 					
 				$this->lib->convertEvent($row['eventid'], $save);			
 			}

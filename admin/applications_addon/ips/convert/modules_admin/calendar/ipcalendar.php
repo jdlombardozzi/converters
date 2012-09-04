@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Calendar 3.0 Converters
  * IP.Calendar Merge Tool
- * Last Update: $Date: 2010-03-19 11:03:12 +0100(ven, 19 mar 2010) $
- * Last Updated By: $Author: terabyte $
+ * Last Update: $Date: 2011-07-08 22:10:14 +0100 (Fri, 08 Jul 2011) $
+ * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 437 $
+ * @version		$Revision: 548 $
  */
 
 
@@ -42,9 +42,12 @@
 
 			// array('action' => array('action that must be completed first'))
 			$this->actions = array(
-				'cal_calendars' => array('forum_perms'),
-				'cal_events'	=> array('cal_calendars', 'members'),
-				);
+				'cal_calendars' 		=> array('forum_perms'),
+				'cal_events'			=> array('cal_calendars', 'members'),
+				'cal_event_comments'	=> array ( 'cal_events', 'members' ),
+				'cal_event_ratings'		=> array ( 'cal_events', 'members' ),
+				'cal_event_rsvp'		=> array ( 'cal_events', 'members' ),
+			);
 
 			//-----------------------------------------
 	        // Load our libraries
@@ -262,6 +265,78 @@
 			$this->lib->next();
 
 		}
+		
+		/**
+		 * Convert Event Ratings
+		 * 
+		 * @access	private
+		 * @return	void
+		 */
+		private function convert_cal_event_ratings ( )
+		{
+			$main = array (
+				'select'	=> '*',
+				'from'		=> 'cal_event_ratings',
+				'order'		=> 'rating_id ASC',
+			);
+			
+			$loop = $this->lib->load ( 'cal_event_ratings', $main );
+			
+			while ( $row = ipsRegistry::DB ( 'hb' )->fetch ( $this->lib->queryRes ) )
+			{
+				$this->lib->convertEventRating ( $info['rating_id'], $row );
+			}
+			
+			$this->lib->next ( );
+		}
+		
+		/**
+		 * Convert Event Comments
+		 * 
+		 * @access	private
+		 * @return	void
+		 */
+		private function convert_cal_event_comments ( )
+		{
+			$main = array (
+				'select'	=> '*',
+				'from'		=> 'cal_event_comments',
+				'order'		=> 'comment_id ASC',
+			);
+			
+			$loop = $this->lib->load ( 'cal_event_comments', $main );
+			
+			while ( $row = ipsRegistry::DB ( 'hb' )->fetch ( $this->lib->queryRes ) )
+			{
+				$row['comment_text'] = $this->fixPostData ( $row['comment_text'] );
+				$this->lib->convertEventComment ( $info['comment_id'], $row );
+			}
+			
+			$this->lib->next ( );
+		}
+		
+		/**
+		 * Convert Event RSVP
+		 * 
+		 * @access	private
+		 * @return	void
+		 */
+		private function convert_cal_event_rsvp ( )
+		{
+			$main = array (
+				'select'	=> '*',
+				'from'		=> 'cal_event_rsvp',
+				'order'		=> 'rsvp_id ASC',
+			);
+			
+			$loop = $this->lib->load ( 'cal_event_rsvp', $main );
+			
+			while ( $row = ipsRegistry::DB ( 'hb' )->fetch ( $this->lib->queryRes ) )
+			{
+				$this->lib->convertEventRsvp ( $info['rsvp_id'], $row );
+			}
+			
+			$this->lib->next ( );
+		}
 
 	}
-
