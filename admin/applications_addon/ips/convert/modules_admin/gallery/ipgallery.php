@@ -1,22 +1,22 @@
 <?php
 /**
  * IPS Converters
- * IP.Gallery 3.0 Converters
+ * IP.Gallery 4.0 Converters
  * IP.Gallery Merge Tool
- * Last Update: $Date: 2011-06-08 12:44:41 -0400 (Wed, 08 Jun 2011) $
+ * Last Update: $Date: 2011-06-24 18:29:40 +0100 (Fri, 24 Jun 2011) $
  * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 529 $
+ * @version		$Revision: 539 $
  */
 
 
 	$info = array(
 		'key'	=> 'ipgallery',
-		'name'	=> 'IP.Gallery 3.0',
+		'name'	=> 'IP.Gallery 4.0',
 		'login'	=> false,
 	);
 
@@ -110,6 +110,9 @@
 		{
 			switch ($action)
 			{
+				case 'gallery_albums':
+					return $this->lib->countRows ( 'gallery_albums_main' );
+				break;
 				default:
 					return $this->lib->countRows($action);
 					break;
@@ -158,9 +161,6 @@
 		 **/
 		private function convert_gallery_albums()
 		{
-			// Save extra information
-			$this->lib->saveMoreInfo ( 'gallery_albums', array ( 'container_album' ) );
-
 			//---------------------------
 			// Set up
 			//---------------------------
@@ -172,35 +172,6 @@
 
 			$loop = $this->lib->load('gallery_albums', $main);
 			
-			// Have any info?
-			$options = array ( );
-			$this->DB->build ( array (
-				'select'	=> '*',
-				'from'		=> 'gallery_albums_main',
-				'where'		=> 'album_is_global = 1',
-			) );
-			$albumRes = $this->DB->execute ( );
-			while ( $row = $this->DB->fetch ( $albumRes ) )
-			{
-				$options[$row['album_id']] = $row['album_name'];
-			}
-			
-			if ( count ( $options ) < 1 )
-			{
-				$this->lib->error ( 'You need at least one Global Album before you may continue.' );
-			}
-			
-			$this->lib->getMoreInfo ( 'gallery_albums', $loop, array (
-				'container_album'	=> array (
-					'type'		=> 'dropdown',
-					'label'		=> 'The Global Album to store all Member Albums in:',
-					'options'	=> $options,
-				)
-			), 'container_album' );
-			
-			$get	= unserialize ( $this->settings['conv_extra'] );
-			$us		= $get[$this->lib->app['name']];
-
 			//---------------------------
 			// Loop
 			//---------------------------
@@ -230,7 +201,7 @@
 					'album_g_container_only'		=> $row['album_g_container_only'],
 				);
 				
-				$this->lib->convertAlbum($row['album_id'], $save, $us);
+				$this->lib->convertAlbum($row['album_id'], $save, array ( ), TRUE);
 			}
 
 			$this->lib->next();
@@ -307,7 +278,7 @@
 					'img_album_id'	=> $row['img_album_id'],
 					'caption'		=> $row['caption'],
 					'description'	=> $row['description'],
-					'file_name'		=> $row['masked_file_name'],
+					'file_name'		=> $row['directory'] . '/' . $row['masked_file_name'],
 					'file_size'		=> $row['file_size'],
 					'approved'		=> $row['approved'],
 					'idate'			=> $row['idate'],
@@ -316,10 +287,10 @@
 					'views'			=> $row['views'],
 					'pinned'		=> $row['pinned'],
 					'media'			=> $row['media'],
-					'credit_info'	=> $row['credit_info']
+					'credit_info'	=> $row['credit_info'],
 				);
 
-				$this->lib->convertImage($row['id'], $info, $path);
+				$this->lib->convertImage($row['id'], $save, $path);
 
 				//-----------------------------------------
 				// Ratings

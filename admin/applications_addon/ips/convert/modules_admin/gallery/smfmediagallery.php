@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Gallery 3.0 Converters
  * SMF Media Gallery
- * Last Update: $Date: 2011-06-08 12:44:41 -0400 (Wed, 08 Jun 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2011-11-08 00:14:18 +0000 (Tue, 08 Nov 2011) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 529 $
+ * @version		$Revision: 593 $
  */
 
 
@@ -275,7 +275,6 @@
 					$save = array(
 						'album_name'				=> $row['name'],
 						'album_description'			=> $row['description'],
-						'password'					=> $row['passwd'],
 						'album_parent_id'			=> $row['parent'],
 						'album_g_container_only'	=> 1,
 						);
@@ -313,7 +312,7 @@
 							'order'		=> 'id_media ASC',
 						);
 
-			$loop = $this->lib->load('gallery_images', $main, array('gallery_favorites'));
+			$loop = $this->lib->load('gallery_images', $main);
 
 			//-----------------------------------------
 			// We need to know the path

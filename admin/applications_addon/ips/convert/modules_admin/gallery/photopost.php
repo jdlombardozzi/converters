@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Gallery 3.0 Converters
  * Photopost
- * Last Update: $Date: 2011-06-08 12:44:41 -0400 (Wed, 08 Jun 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2012-05-29 16:40:05 +0100 (Tue, 29 May 2012) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 529 $
+ * @version		$Revision: 638 $
  */
 
 
@@ -21,7 +21,7 @@
 	);
 
 	//TODO:See if this is the one which added XF support, and update appropriately.
-	$parent = array('required' => false, 'choices' => array(
+	$parent = array('required' => false, 'self' => true, 'choices' => array(
 		array('app' => 'board', 'key' => 'vbulletin_legacy', 'newdb' => true),
 		array('app' => 'board', 'key' => 'vbulletin', 'newdb' => true),
 		array('app' => 'board', 'key' => 'phpbb', 'newdb' => true),
@@ -65,7 +65,7 @@
 			$forAll = array(
 				'gallery_categories'	=> array('members'),
 				'gallery_albums'		=> array('members', 'gallery_categories'),
-				'gallery_images'		=> array('members', 'gallery_categories', 'gallery_albums'),
+				'gallery_images'		=> array('members', 'gallery_albums'),
 				'gallery_comments'		=> array('members', 'gallery_images'),
 				//'gallery_ecardlog'		=> array('gallery_images', 'members'),
 				);
@@ -81,7 +81,7 @@
 			$this->lib =  new lib_gallery( $this->registry, $html, $this, $useLocal );
 
 	        $this->html = $this->lib->loadInterface();
-			$this->lib->sendHeader( 'Photopost &rarr; IP.Gallery Converter' );
+			$this->lib->sendHeader( 'Photopost 6.2 &rarr; IP.Gallery Converter' );
 
 			//-----------------------------------------
 			// Are we connected?
@@ -94,7 +94,7 @@
 			// What are we doing?
 			//-----------------------------------------
 
-			if (array_key_exists($this->request['do'], $this->actions))
+			if (array_key_exists($this->request['do'], $this->actions) || $this->request['do'] == 'albums2' )
 			{
 				call_user_func(array($this, 'convert_'.$this->request['do']));
 			}
@@ -145,12 +145,16 @@
 					return $this->lib->countRows('users');
 					break;
 
-				case 'gallery_categories':
+				/*case 'gallery_categories':
 					return $this->lib->countRows('categories', "cattype='c'");
+					break;*/
+
+				case 'gallery_categories':
+					return $this->lib->countRows('categories');
 					break;
 
 				case 'gallery_albums':
-					return $this->lib->countRows('categories', "cattype='a'");
+					return $this->lib->countRows('useralbums');
 					break;
 
 				case 'gallery_images':
@@ -412,8 +416,8 @@
 
 				if ($row['avatar'])
 				{
-					$profile['avatar_type'] = 'upload';
-					$profile['avatar_location'] = $row['avatar'];
+					$profile['photo_type'] = 'custom';
+					$profile['pp_main_photo'] = $row['avatar'];
 					$path = $us['avvy_path'];
 				}
 
@@ -447,7 +451,7 @@
 		 *
 		 * @access	private
 		 * @return void
-		 **/
+		 **
 		private function convert_gallery_categories()
 		{
 
@@ -510,7 +514,7 @@
 
 			$this->lib->next();
 
-		}
+		}*/
 
 		/**
 		 * Work out the permissions column
@@ -556,13 +560,13 @@
 		 * @access	private
 		 * @return void
 		 **/
-		private function convert_gallery_albums()
+		private function convert_gallery_categories()
 		{
 			//-----------------------------------------
 			// Were we given more info?
 			//-----------------------------------------
 
-			$this->lib->saveMoreInfo('gallery_albums', array('orphans'));
+			//$this->lib->saveMoreInfo('gallery_albums', array('orphans'));
 
 			//---------------------------
 			// Set up
@@ -570,8 +574,103 @@
 
 			$main = array(	'select' 	=> '*',
 							'from' 		=> 'categories',
-							'where'		=> "cattype='a'",
 							'order'		=> 'id ASC',
+						);
+
+			$loop = $this->lib->load('gallery_categories', $main);
+
+			//-----------------------------------------
+			// We need to know how to handle orphans
+			//-----------------------------------------
+
+			/*$cats = array();
+			$this->DB->build(array('select' => '*', 'from' => 'gallery_albums_main', 'album_g_container_only = 1'));
+			$this->DB->execute();
+			while ($r = $this->DB->fetch())
+			{
+				$cats[$r['album_id']] = $r['album_name'];
+			}
+
+			$this->lib->getMoreInfo('gallery_albums', $loop, array('orphans' => array('type' => 'dropdown', 'label' => 'To which category do you wish to put orphaned images?', 'options' => $cats)));
+
+			$get = unserialize($this->settings['conv_extra']);
+			$us = $get[$this->lib->app['name']];*/
+			
+			//-----------------------------------------
+			// Get remote groups
+			//-----------------------------------------
+
+			$groups = array();
+			ipsRegistry::DB('hb')->build( array( 'select' => '*', 'from' => 'usergroups' ) );
+			$gp = ipsRegistry::DB('hb')->execute();
+			while ( $row = ipsRegistry::DB('hb')->fetch($gp) )
+			{
+				$groups[] = $row['groupid'];
+			}
+
+			//---------------------------
+			// Loop
+			//---------------------------
+
+			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
+			{
+				$perms = array();
+				$perms['album_g_perms_view']		= $this->_populatePerms($row, $groups, 'view');
+				$perms['album_g_perms_images']		= $this->_populatePerms($row, $groups, 'upload');
+				$perms['album_g_perms_comments']	= $this->_populatePerms($row, $groups, 'comment');
+				//$perms['album_g_perms_moderate']	= $this->_populatePerms ( $row, $groups, 'moderate' );
+
+				if ( $row['intro'] == 'yes' )
+				{
+					$rules = serialize ( array (
+						'title'	=> $row['introtitle'],
+						'text'	=> $row['introcopy'],
+					) );
+				}
+				
+				$row['parentid'] = $row['parentid'] == -1 ? 0 : $row['parentid'];
+
+				$save = array(
+					'album_parent_id'			=> ( $row['parentid'] ? $row['parentid'] : 0 ),
+					'album_name'				=> $row['title'],
+					'album_description'			=> $row['description'],
+					'album_g_rules'				=> $rules,
+					'album_is_global'			=> 1,
+					'album_g_container_only'	=> 0,
+                    //'album_owner_id'            => $row['catuserid'],
+                    'album_is_public'           => 1,
+				);
+				
+				$save = array_merge( $save, $perms );
+                
+				$this->lib->convertAlbum($row['catid'], $save, array ( ), true);
+			}
+
+			$this->lib->next();
+
+		}
+		
+		/**
+		 * Convert Albums
+		 *
+		 * @access	private
+		 * @return void
+		 **/
+		private function convert_gallery_albums()
+		{
+			//-----------------------------------------
+			// Were we given more info?
+			//-----------------------------------------
+
+			//$this->lib->saveMoreInfo('gallery_albums', array('orphans'));
+
+			//---------------------------
+			// Set up
+			//---------------------------
+
+			$main = array(	'select' 	=> '*',
+							'from' 		=> 'useralbums',
+							'order'		=> 'albumid ASC',
 						);
 
 			$loop = $this->lib->load('gallery_albums', $main);
@@ -580,7 +679,7 @@
 			// We need to know how to handle orphans
 			//-----------------------------------------
 
-			$cats = array();
+			/*$cats = array();
 			$this->DB->build(array('select' => '*', 'from' => 'gallery_albums_main', 'album_g_container_only = 1'));
 			$this->DB->execute();
 			while ($r = $this->DB->fetch())
@@ -588,10 +687,22 @@
 				$cats[$r['album_id']] = $r['album_name'];
 			}
 
-			$this->lib->getMoreInfo('gallery_albums', $loop, array('orphans' => array('type' => 'dropdown', 'label' => 'To which category do you wish to put albums?', 'options' => $cats)));
+			$this->lib->getMoreInfo('gallery_albums', $loop, array('orphans' => array('type' => 'dropdown', 'label' => 'To which category do you wish to put orphaned images?', 'options' => $cats)));
 
 			$get = unserialize($this->settings['conv_extra']);
-			$us = $get[$this->lib->app['name']];
+			$us = $get[$this->lib->app['name']];*/
+			
+			//-----------------------------------------
+			// Get remote groups
+			//-----------------------------------------
+
+			$groups = array();
+			ipsRegistry::DB('hb')->build( array( 'select' => '*', 'from' => 'usergroups' ) );
+			$gp = ipsRegistry::DB('hb')->execute();
+			while ( $row = ipsRegistry::DB('hb')->fetch($gp) )
+			{
+				$groups[] = $row['groupid'];
+			}
 
 			//---------------------------
 			// Loop
@@ -599,14 +710,34 @@
 
 			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 			{
-				$save = array(
-					'album_owner_id'	=> $row['parent'],
-					'album_is_public'	=> ($row['private'] == 'yes') ? 0 : 1,
-					'album_name'		=> $row['catname'],
-					'album_parent_id'	=> $us['orphans'],
-				);
+				$perms = array();
+				$perms['album_g_perms_view']		= $this->_populatePerms($row, $groups, 'view');
+				$perms['album_g_perms_images']		= $this->_populatePerms($row, $groups, 'upload');
+				$perms['album_g_perms_comments']	= $this->_populatePerms($row, $groups, 'comment');
+				//$perms['album_g_perms_moderate']	= $this->_populatePerms ( $row, $groups, 'moderate' );
 
-				$this->lib->convertAlbum($row['id'], $save, array ( ), true);
+				if ( $row['intro'] == 'yes' )
+				{
+					$rules = serialize ( array (
+						'title'	=> $row['introtitle'],
+						'text'	=> $row['introcopy'],
+					) );
+				}
+
+				$save = array(
+					'album_parent_id'			=> $row['albumid'],
+					'album_name'				=> $row['title'],
+					'album_description'			=> $row['description'],
+					'album_g_rules'				=> $rules,
+					'album_is_global'			=> 0,
+					'album_g_container_only'	=> 0,
+                    'album_owner_id'            => $row['userid'],
+                    'album_is_public'           => $row['visible'],
+				);
+				
+				$save = array_merge( $save, $perms );
+                
+				$this->lib->convertAlbum($row['userid'], $save, array ( ), true);
 			}
 
 			$this->lib->next();
@@ -638,12 +769,20 @@
 						);
 
 			$loop = $this->lib->load('gallery_images', $main);
+			
+			$cats = array();
+			$this->DB->build(array('select' => '*', 'from' => 'gallery_albums_main', 'album_is_global=1'));
+			$this->DB->execute();
+			while ($r = $this->DB->fetch())
+			{
+				$cats[$r['album_id']] = $r['album_name'];
+			}
 
 			//-----------------------------------------
 			// We need to know the path
 			//-----------------------------------------
 
-			$this->lib->getMoreInfo('gallery_images', $loop, array('gallery_path' => array('type' => 'text', 'label' => 'The path to the folder where images are saved (no trailing slash - usually path_to_photopost/data):')), 'path');
+			$this->lib->getMoreInfo('gallery_images', $loop, array('gallery_path' => array('type' => 'text', 'label' => 'The path to the folder where images are saved (no trailing slash - usually path_to_photopost/data):'), 'orphans' => array('type' => 'dropdown', 'label' => 'Where do you want to put orphaned images?', 'options' => $cats)), 'path');
 
 			$get = unserialize($this->settings['conv_extra']);
 			$us = $get[$this->lib->app['name']];
@@ -681,11 +820,11 @@
 				// Basic info
 				$save = array(
 					'member_id'			=> $row['userid'],
-					'album_id'			=> ( $this->lib->getLink($row['cat'], 'gallery_albums', true) ) ? $row['cat'] : 0,
+					'img_album_id'		=> $row['setid'] ? $row['setid'] : $us['orphans'],
 					'caption'			=> $row['title'],
 					'description'		=> $row['description'],
-					'directory'			=> $row['cat'],
-					'file_name'			=> $row['bigimage'],
+					'directory'			=> $row['catid'],
+					'file_name'			=> $row['filename'],
 					'file_size'			=> $row['filesize'],
 					'file_type'			=> $mime,
 					'approved'			=> $row['approved'],
@@ -698,7 +837,7 @@
 					);
 
 				// Go!
-				$this->lib->convertImage($row['id'], $save, $path);
+				$this->lib->convertImage($row['fileid'], $save, $path);
 				
 				//Photopost 7?
 				//$this->lib->convertImage($row['id'], $save, $path . '/' . $row['cat'], array());

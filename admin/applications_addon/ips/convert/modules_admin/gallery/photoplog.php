@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Gallery 3.0 Converters
  * Photopost
- * Last Update: $Date: 2011-06-08 12:44:41 -0400 (Wed, 08 Jun 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2012-02-20 17:36:14 +0000 (Mon, 20 Feb 2012) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 529 $
+ * @version		$Revision: 621 $
  */
 
 
@@ -391,8 +391,8 @@
 
 				if ($row['avatar'])
 				{
-					$profile['avatar_type'] = 'upload';
-					$profile['avatar_location'] = $row['avatar'];
+					$profile['photo_type'] = 'custom';
+					$profile['pp_main_photo'] = $row['avatar'];
 					$path = $us['avvy_path'];
 				}
 
@@ -440,34 +440,6 @@
 
 			$loop = $this->lib->load('gallery_albums', $main);
 
-			$options = array ( );
-			$this->DB->build ( array (
-				'select'	=> '*',
-				'from'		=> 'gallery_albums_main',
-				'where'		=> 'album_is_global = 1',
-			) );
-			$albumRes = $this->DB->execute ( );
-			while ( $row = $this->DB->fetch ( $albumRes ) )
-			{
-				$options[$row['album_id']]	= $row['album_name'];
-			}
-			
-			if ( count ( $options ) < 1 )
-			{
-				$this->lib->error ( 'You need at least one Global Album before you may continue.' );
-			}
-			
-			$this->lib->getMoreInfo ( 'gallery_albums', $loop, array (
-				'container_album' => array (
-					'type'		=> 'dropdown',
-					'label' 	=> 'The Global Album to store all Member Albums in:',
-					'options'	=> $options,
-				)
-			), 'container_album' );
-
-			$get	= unserialize ( $this->settings['conv_extra'] );
-			$us		= $get[$this->lib->app['name']];
-
 			//---------------------------
 			// Loop
 			//---------------------------
@@ -481,11 +453,13 @@
 					'album_name'				=> $row['title'],
 					'album_description'			=> $row['description'],
 					'album_g_container_only'	=> $row['parentid'] == -1 ? 1 : 0,
-					'album_is_global' 			=> ( $row['parentid'] == -1 ? 1 : 0 ),
+					'album_is_global' 			=> /* ( $row['parentid'] == -1 ? 1 : 0 ) */ 1,
+                    'album_is_public'           => 1,
 					);
 
-				$this->lib->convertAlbum($row['catid'], $save, $us);
+				$this->lib->convertAlbum($row['catid'], $save, array());
 			}
+
 			$this->lib->next();
 		}
 
@@ -609,11 +583,56 @@
 				$ext = strtolower(array_pop($explode));
 				$ext = ($ext == 'jpg') ? 'jpeg' : $ext;
 				$mime = "image/{$ext}";
+				
+				// Do we have an image set?
+				$set = $this->lib->getLink( 's' . $row['setid'], 'gallery_albums', true );
+				
+				if ( ! $set && $row['catid'] && $row['userid'] )
+				{
+					// Attempt to see if we already have one in database
+					$cat = $this->DB->buildAndFetch(
+						array(
+							'select'	=> 'a.album_id',
+							'from'		=> array( 'gallery_albums_main' => 'a' ),
+							'add_join'	=> array(
+								array(
+									'select'	=> 'cl.foreign_id',
+									'from'		=> array( 'conv_link' => 'cl' ),
+									'where'		=> "cl.ipb_id=a.album_id AND cl.type='gallery_albums'",
+									'type'		=> 'left'
+								)
+							),
+							'where'		=> 'a.album_parent_id=' . $this->lib->getLink( $row['catid'], 'gallery_albums' ) . ' AND a.album_owner_id=' . $this->lib->getLink( $row['userid'], 'members', false, true ) . " AND cl.foreign_id='s" . $row['setid'] . "'"
+						)
+					);
+					
+					
+					// We have a category
+					if ( $cat['foreign_id'] )
+					{
+						$row['setid'] = str_replace( 's', '', $cat['foreign_id'] );
+					}
+					else
+					{					
+						// Grab child albums
+						$save = array(
+							'album_owner_id'			=> $row['userid'],
+							'album_parent_id'			=> $row['catid'],
+							'album_name'				=> $row['title'],
+							'album_description'			=> '',
+							'album_is_public'			=> 1,
+							'album_is_global'			=> 0,
+							'album_g_container_only'	=> 0,
+						);
+					
+						$this->lib->convertAlbum( 's' . $row['setid'], $save, array());
+					}
+				}
 
 				// Basic info
 				$save = array(
 					'member_id'			=> $row['userid'],
-					'img_album_id'		=> $row['catid'],
+					'img_album_id'		=> 's' . $row['setid'],
 					'caption'			=> $row['title'],
 					'description'		=> $row['description'],
 					'directory'			=> $row['userid'],

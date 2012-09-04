@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Gallery 3.0 Converters
  * Coppermine Photo Gallery
- * Last Update: $Date: 2011-06-08 12:44:41 -0400 (Wed, 08 Jun 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2011-11-08 00:14:18 +0000 (Tue, 08 Nov 2011) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 529 $
+ * @version		$Revision: 593 $
  */
 
 
@@ -43,7 +43,7 @@
 				//'gallery_form_fields'	=> array(),
 				'gallery_categories'	=> array('members'),
 				'gallery_albums'		=> array('members', 'gallery_categories'),
-				'gallery_images'		=> array('members', 'gallery_categories', 'gallery_albums', 'gallery_form_fields'),
+				'gallery_images'		=> array('members', 'gallery_categories', 'gallery_albums'),
 				'gallery_comments'		=> array('members', 'gallery_images'),
 				);
 
@@ -501,9 +501,9 @@
 				$save = array(
 					'album_name'		=> $row['title'],
 					'album_description'	=> $row['description'],
-					'public_album'		=> ($row['visibility']) ? 0 : 1,
+					'album_is_public'	=> ($row['visibility']) ? 0 : 1,
 					'album_parent_id'	=> ($skip_cat_link) ? $us['container_album'] : $row['category'],
-					'member_id'			=> $member_id,
+					'album_owner_id'	=> $member_id,
 					);
 
 				$this->lib->convertAlbum($row['aid'], $save, $us, $skip_cat_link);
@@ -537,7 +537,7 @@
 							'order'		=> 'pid ASC',
 						);
 
-			$loop = $this->lib->load('gallery_images', $main, array('gallery_favorites'));
+			$loop = $this->lib->load('gallery_images', $main);
 
 			//-----------------------------------------
 			// We need to know the path

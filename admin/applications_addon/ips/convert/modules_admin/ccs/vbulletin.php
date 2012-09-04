@@ -381,18 +381,19 @@ class admin_convert_ccs_vbulletin extends ipsCommand
 			//--------------------------------------
 			// Convert
 			//--------------------------------------
-			$save = array( 'member_id'																						=> $row['userid'],
-						   'record_saved'																					=> $row['publishdate'],
-						   'record_updated'																				=> $row['lastupdated'],
-						   'category_id'																					=> $row['parentnode'],
-						   'record_locked'																					=> $row['comments_enabled'] ? 0 : 1,
-						   'record_approved'																				=> $row['setpublish'],
+			$save = array( 'member_id'						=> $row['userid'],
+						   'record_saved'					=> $row['publishdate'],
+						   'record_updated'					=> $row['lastupdated'],
+						   'category_id'					=> $row['parentnode'],
+						   'record_locked'					=> $row['comments_enabled'] ? 0 : 1,
+						   'record_approved'				=> $row['setpublish'],
+						   'record_dynamic_furl'			=> IPSText::makeSeoTitle($row['title'])
 						   //'field_'.$fields[ $this->lib->getLink( $row['parentnode'], 'ccs_databases' ) ]['Attachments']	=> $row['hasattach'],
 						   );
 
 			if ( $fields['article_title'] )
 			{
-				$save['field_'.$fields['article_title']] = $row['title'];
+				$save['field_'.$fields['article_title']] = htmlspecialchars($row['title']);
 			}
 			if ( $fields['article_body'] )
 			{
@@ -401,7 +402,12 @@ class admin_convert_ccs_vbulletin extends ipsCommand
 				IPSText::getTextClass('bbcode')->parse_emoticons	= 1;
 				IPSText::getTextClass('bbcode')->parse_nl2br		= 1;
 				IPSText::getTextClass('bbcode')->parsing_section	= 'global';
-				$save['field_'.$fields['article_body']] = IPSText::getTextClass('bbcode')->preDisplayParse( $this->fixPostData($row['pagetext']) );
+				
+				// Video tag
+				$row['pagetext']	= preg_replace( "#video=youtube;(.+?)]#is", 'media]', $row['pagetext'] );
+				$row['pagetext']	= str_replace( '[/video]', '[/media]', $row['pagetext'] );
+				
+				$save['field_'.$fields['article_body']] = IPSText::getTextClass('bbcode')->preDbParse( $this->fixPostData($row['pagetext']) );
 			}
 			if ( $fields['article_date'] )
 			{
@@ -522,7 +528,16 @@ class admin_convert_ccs_vbulletin extends ipsCommand
 			{
 				$image = true;
 			}
-
+			
+			// Need to grab the topic ID
+			$category 		= ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => 'parentnode', 'from' => 'cms_node', 'where' => "contentid='" . intval( $row['contentid'] ) . "'" ) );
+			
+			// Grab our real id
+			if ( $category['parentnode'] )
+			{
+				$realCategory	= $this->lib->getLink( $category['parentnode'], 'ccs_database_categories' );
+			}
+			
 			$save = array(
 				'attach_ext'			=> $filedata['extension'],
 				'attach_file'			=> $row['filename'],
@@ -533,6 +548,7 @@ class admin_convert_ccs_vbulletin extends ipsCommand
 				'attach_filesize'		=> $filedata['filesize'],
 				'attach_rel_id'			=> $row['contentid'],
 				'attach_rel_module'		=> 'ccs',
+				'attach_parent_id'		=> $realCategory
 				);
 
 			//-----------------------------------------
@@ -582,6 +598,19 @@ class admin_convert_ccs_vbulletin extends ipsCommand
 					$update = preg_replace("/\[ATTACH=CONFIG\]".$rawaid."\[\/ATTACH\]/i", "[attachment={$aid}:{$save['attach_location']}]", $attachrow[$postField]);
 
 					$this->DB->update('ccs_custom_database_1', array($postField => $update), "primary_id_field={$pid}");
+					
+					// Insert mapping
+					$this->DB->insert( 'ccs_attachments_map',
+						array(
+							'map_attach_id'	=> $aid,
+							'map_database_id'	=> 1,
+							'map_field_id'		=> 14,
+							'map_record_id'	=> $pid
+						)
+					);
+					
+					// Update initial attachment
+					$this->DB->update( 'attachments', array( 'attach_post_key' => $attachrow['post_key'], 'attach_rel_id' => $this->DB->getInsertId() ), 'attach_id=' . $aid );
 				}
 			}
 

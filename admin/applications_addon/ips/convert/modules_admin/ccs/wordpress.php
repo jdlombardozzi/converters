@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Content Converters
  * WordPress 3.1 Converter
- * Last Update: $Date: 2011-06-08 12:44:41 -0400 (Wed, 08 Jun 2011) $
+ * Last Update: $Date: 2011-07-12 21:15:48 +0100 (Tue, 12 Jul 2011) $
  * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters
  * @author 		Ryan Ashbrook
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 529 $
+ * @version		$Revision: 550 $
  */
 
 $info = array (
@@ -301,7 +301,7 @@ class admin_convert_ccs_wordpress extends ipsCommand
 			// And go!
 			//-----------------------------------------
 
-			$this->lib->convertMember ( $info, $members, array ( ), $custom, '', '', FALSE );
+			$this->lib->convertMember ( $info, $members, array ( ), $custom, '', FALSE );
 		}
 			
 		$this->lib->next ( );

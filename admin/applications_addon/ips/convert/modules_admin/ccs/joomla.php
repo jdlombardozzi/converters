@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Content 2.2 Converters
  * Joomla! 1.6 Converter
- * Last Update: $Date: 2011-07-29 18:42:31 +0100 (Fri, 29 Jul 2011) $
+ * Last Update: $Date: 2011-12-09 17:27:11 +0000 (Fri, 09 Dec 2011) $
  * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Ryan Ashbrook
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 569 $
+ * @version		$Revision: 607 $
  */
 
 $info = array (
@@ -230,11 +230,12 @@ class admin_convert_ccs_joomla extends ipsCommand
 			// Store basic information.
 			$info = array (
 				'id'				=> $row['id'],
+				'email'				=> $row['email'],
 				'password'			=> $pass[0],
 				'username'			=> $row['username'],
 				'displayname'		=> $row['name'],
 				'joined'			=> strtotime ( $row['registerDate'] ),
-				'group'				=> $primary,
+				'group'				=> $this->lib->getLink( $primary, 'groups', false, true ),
 				'secondary_groups'	=> $secondaries,
 			);
 			
@@ -250,8 +251,10 @@ class admin_convert_ccs_joomla extends ipsCommand
 				$member['member_banned'] = 1;
 			}
 			
-			$this->lib->convertMember ( $info, $members, array ( ), array ( ) );
+			$this->lib->convertMember( $info, $members, array(), array(), '', false );
 		}
+		
+		$this->lib->next();
 	}
 	
 	private function convert_ccs_database_categories ( )

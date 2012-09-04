@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Gallery 3.0 Converters
  * vBulletin
- * Last Update: $Date: 2011-06-08 12:44:41 -0400 (Wed, 08 Jun 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2011-08-12 19:36:57 +0100 (Fri, 12 Aug 2011) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 529 $
+ * @version		$Revision: 577 $
  */
 
 
@@ -390,7 +390,6 @@
 					'approved'		=> ($row['state'] == 'visible') ? 1 : 0,
 					'comment'		=> $this->fixPostData($row['pagetext']),
 					'ip_address'	=> $row['ipaddress'],
-					'use_emo'		=> $row['allow_smilie'],
 					);
 
 				$this->lib->convertComment($row['commentid'], $save);
