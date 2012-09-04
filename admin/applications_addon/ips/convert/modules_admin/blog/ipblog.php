@@ -41,7 +41,6 @@
 
 			// array('action' => array('action that must be completed first'))
 			$this->actions = array(
-				'blog_bookmarks' => array(),
 				'blog_pingservices' => array(),
 				'blog_themes'	=> array(),
 				'blog_headers'	=> array(),
@@ -529,37 +528,6 @@
 					}
 					$this->lib->convertReport('blog', $report, $reports);
 				}
-			}
-
-			$this->lib->next();
-		}
-
-		/**
-		 * Convert Bookmarks
-		 *
-		 * @access	private
-		 * @return void
-		 **/
-		private function convert_blog_bookmarks()
-		{
-			//---------------------------
-			// Set up
-			//---------------------------
-
-			$main = array(	'select' 	=> '*',
-							'from' 		=> 'blog_bookmarks',
-							'order'		=> 'bookmark_id ASC',
-						);
-
-			$loop = $this->lib->load('blog_bookmarks', $main);
-
-			//---------------------------
-			// Loop
-			//---------------------------
-
-			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
-			{
-				$this->lib->convertBookmark($row['bookmark_id'], $row);
 			}
 
 			$this->lib->next();

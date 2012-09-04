@@ -3,14 +3,14 @@
  * IPS Converters
  * WordPress 3.1 Converters
  * vBulletin
- * Last Update: $Date: 2011-04-01 13:22:34 -0400 (Fri, 01 Apr 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2011-11-08 00:14:18 +0000 (Tue, 08 Nov 2011) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 517 $
+ * @version		$Revision: 593 $
  */
 
 	$info = array(
@@ -364,7 +364,7 @@
 				// And go!
 				//-----------------------------------------
 
-				$this->lib->convertMember($info, $members, array(), $custom, '', '', FALSE);
+				$this->lib->convertMember($info, $members, array(), $custom, '', FALSE);
 			}
 			
 			$this->lib->next();
@@ -491,7 +491,7 @@
 					'ip_address'		=> $row['comment_author_IP'],
 					'comment_date'		=> $row['TS_comment_date_gmt'],
 					'comment_use_emo'	=> 1,
-					'comment_queued'	=> $row['comment_approved'] == 1 ? 0 : 1,
+					'comment_approved'	=> $row['comment_approved'],
 					'comment_edit_time'	=> 0,
 					'comment_edit_name'	=> '',
 					'comment_text'		=> $this->fixPostData($row['comment_content']),

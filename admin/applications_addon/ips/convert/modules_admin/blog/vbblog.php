@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Blog 2.0 Converters
  * vBulletin Blog
- * Last Update: $Date: 2010-03-19 11:03:12 +0100(ven, 19 mar 2010) $
- * Last Updated By: $Author: terabyte $
+ * Last Update: $Date: 2012-01-10 22:28:14 +0000 (Tue, 10 Jan 2012) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 437 $
+ * @version		$Revision: 614 $
  */
 
 	$info = array(
@@ -168,7 +168,15 @@
 		 **/
 		public function checkConf($action)
 		{
-			return false;
+			switch ( $action )
+			{
+				case 'blog_attachments':
+					return true;
+				break;
+				default:
+					return false;
+				break;
+			}
 		}
 		
 		/**
@@ -241,13 +249,15 @@
 				$perms['owner_only']		= $private;
 				$perms['authorized_users']	= '';
 				
+				$member = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => 'username', 'from' => 'user', 'where' => 'userid=' . $row['bloguserid'] ) );
+				
 				//-----------------------------------------
 				// Do the blog
 				//-----------------------------------------
 				
 				$save = array(
 					'member_id'			=> $row['bloguserid'],
-					'blog_name'			=> ($row['title'] == '') ? "Blog {$row['bloguserid']}" : $row['title'],
+					'blog_name'			=> ($row['title'] == '') ? "Blog {$member['username']}" : $row['title'],
 					'blog_desc'			=> $row['description'],
 					'blog_type'			=> 'local',
 					'blog_private'		=> $private,
@@ -346,7 +356,7 @@
 				//-----------------------------------------
 				
 				$save = array(
-					'blog_id'					=> $row['bloguserid'],
+					'blog_id'					=> $row['blogid'],
 					'entry_author_id'			=> $row['userid'],
 					'entry_author_name'			=> $row['username'],
 					'entry_date'				=> $row['dateline'],
@@ -450,6 +460,7 @@
 					'comment_edit_time'	=> $log['dateline'],
 					'comment_edit_name'	=> $log['username'],
 					'comment_text'		=> $this->fixPostData($row['pagetext']),
+					'comment_approved'	=> 1
 					);
 				
 				$this->lib->convertComment($row['blogtextid'], $save);			
