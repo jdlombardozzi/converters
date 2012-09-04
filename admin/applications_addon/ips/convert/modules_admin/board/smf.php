@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * SMF
- * Last Update: $Date: 2009-12-06 08:57:22 -0500 (Sun, 06 Dec 2009) $
- * Last Updated By: $Author: terabyte $
+ * Last Update: $Date: 2011-11-08 00:14:18 +0000 (Tue, 08 Nov 2011) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 397 $
+ * @version		$Revision: 593 $
  */
 
 $info = array( 'key'	=> 'smf',
@@ -307,7 +307,7 @@ class admin_convert_board_smf extends ipsCommand
 			$suffix = '';
 			if ($row['online_color'])
 			{
-				$prefix = "<span style='color:{$row['group_color']}'>";
+				$prefix = "<span style='color:{$row['online_color']}'>";
 				$suffix = '</span>';
 			}
 
@@ -373,7 +373,7 @@ class admin_convert_board_smf extends ipsCommand
 
 		// Avatars
 		$ask['gal_path'] = array('type' => 'text', 'label' => 'Path to avatars gallery folder (no trailing slash, default /path_to_smf/avatars): ');
-		$ask['attach_path'] = array('type' => 'text', 'label' => 'The path to the folder where attachments are saved (no trailing slash - usually /path_to_smf/attachments):');
+		$ask['attach_path'] = array('type' => 'text', 'label' => 'The path to the folder where uploaded avatars are saved (no trailing slash - usually /path_to_smf/attachments):');
 
 		// And those custom profile fields
 		$options = array('x' => '-Skip-');
@@ -411,6 +411,7 @@ class admin_convert_board_smf extends ipsCommand
 				'password'			=> $row['passwd'],
 				'email'				=> $row['email_address'],
 				'secondary_groups'	=> $row['additional_groups'],
+				'posts'				=> $row['posts'],
 				);
 
 			// Member info
@@ -419,10 +420,9 @@ class admin_convert_board_smf extends ipsCommand
 			$members = array(
 				'posts'				=> $row['posts'],
 				'last_visit'		=> $row['last_login'],
-				'bday_day'			=> ($row['birthdate']) ? $birthday[2] : '',
-				'bday_month'		=> ($row['birthdate']) ? $birthday[1] : '',
-				'bday_year'			=> ($row['birthdate']) ? $birthday[0] : '',
-				'hide_email' 		=> $row['hide_email'],
+				'bday_day'			=> $birthday[2] ? $birthday[2] : 0,
+				'bday_month'		=> $birthday[1] ? $birthday[1] : 0,
+				'bday_year'			=> $birthday[0] ? $birthday[0] : 0,
 				'time_offset'		=> $row['time_offset'],
 				'email_pm'      	=> $row['pm_email_notify'],
 				'title'				=> $rank['usertitle'],
@@ -447,14 +447,14 @@ class admin_convert_board_smf extends ipsCommand
 				// URL
 				if (preg_match('/http/', $row['avatar']))
 				{
-					$profile['avatar_type'] = 'url';
-					$profile['avatar_location'] = $row['avatar'];
+					$profile['photo_type'] = 'url';
+					$profile['photo_location'] = $row['avatar'];
 				}
 				// Gallery
 				else
 				{
-					$profile['avatar_type'] = 'upload';
-					$profile['avatar_location'] = $row['avatar'];
+					$profile['photo_type'] = 'custom';
+					$profile['photo_location'] = $row['avatar'];
 					$path = $us['gal_path'];
 				}
 			}
@@ -464,8 +464,8 @@ class admin_convert_board_smf extends ipsCommand
 				$attach = ipsRegistry::DB('hb')->buildAndFetch(array(	'select' => '*', 'from' => 'attachments', 'where' => 'id_member='.$row['id_member']));
 				if ($attach)
 				{
-					$profile['avatar_type'] = 'upload';
-					$profile['avatar_location'] = $attach['id_attach'].'_'.$attach['file_hash'];
+					$profile['photo_type'] 		= 'upload';
+					$profile['photo_location'] 	= $attach['id_attach'].'_'.$attach['file_hash'];
 					$path = $us['attach_path'];
 				}
 			}
@@ -497,6 +497,9 @@ class admin_convert_board_smf extends ipsCommand
 				}
 				if ($us[$id] != 'x')
 				{
+					// &amp; is converted to &amp;amp; in our code so we must convert it back first.
+					$row[$id] = str_replace( '&amp;', '&', $row[$id] );
+					
 					$custom['field_'.$us[$id]] = $row[$id];
 				}
 			}
@@ -510,17 +513,21 @@ class admin_convert_board_smf extends ipsCommand
 			ipsRegistry::DB('hb')->build($getpf);
 			ipsRegistry::DB('hb')->execute();
 			while ($pfields = ipsRegistry::DB('hb')->fetch())
-			{
-				if (is_array($pfields['variable']) and in_array($pfields['variable'], array_keys($us['pfield_data'])))
+			{	
+				if ( isset( $us['pfields_values'][$pfields['variable']] ) )
 				{
 					$link = $this->lib->getLink($us['pfield_data'][$pfields['variable']], 'pfields');
+				
 					if ($us['pfields_values'][$pfields['variable']][$pfields['value']])
 					{
-						$custom['field_'.$link] = $us['pfields_values'][$pfields['variable']][$pfields['value']];
+						$custom['field_'.$link] = IPSText::parseCleanValue( $us['pfields_values'][$pfields['variable']][$pfields['value']] );
 					}
 					else
 					{
-						$custom['field_'.$link] = $pfields['value'];
+						// &amp; is converted to &amp;amp; in our code so we must convert it back first.
+						$pfields['value'] = str_replace( '&amp;', '&', $pfields['value'] );
+						
+						$custom['field_'.$link] = IPSText::parseCleanValue( $pfields['value'] );
 					}
 				}
 			}
@@ -669,7 +676,6 @@ class admin_convert_board_smf extends ipsCommand
 				'description'		=> $row['description'],
 				'topics'			=> $row['num_topics'],
 				'posts'				=> $row['num_posts'],
-				'inc_postcount'		=> $row['count_posts'],
 				'queued_posts'		=> $row['unapproved_posts'],
 				'queued_topics'		=> $row['unapproved_topics'],
 				'redirect_url'		=> $row['redirect'],
@@ -824,6 +830,7 @@ class admin_convert_board_smf extends ipsCommand
 				'author_name'		=> $row['poster_name'],
 				'ip_address'		=> $row['poster_ip'],
 				'use_emo'			=> $row['smileys_enabled'],
+				'use_sig'			=> 1,
 				'edit_time'			=> $row['modified_time'],
 				'edit_name'			=> $row['modified_name'],
 				'post'				=> $this->fixPostData($row['body']),
@@ -1007,8 +1014,14 @@ class admin_convert_board_smf extends ipsCommand
 			}
 
 			// Date
-			$post = ipsRegistry::DB('hb')->buildAndFetch(array('select' => 'id_member, poster_time', 'from' => 'messages', 'where' => 'id_msg='.$row['id_msg']));
-
+			$post = ipsRegistry::DB('hb')->buildAndFetch(array('select' => 'id_member, id_topic, poster_time', 'from' => 'messages', 'where' => 'id_msg='.$row['id_msg']));
+			
+			// Get topic
+			if ( $post['id_topic'] )
+			{
+				$ipbTopic = $this->lib->getLink( $post['id_topic'], 'topics' );
+			}
+			
 			// Fix attachments crap
 			// http://community.invisionpower.com/tracker/issue-21020-smf-attachments-are-crazy/
 			$row['filename'] = str_replace(' ', '_', $row['filename']);
@@ -1026,7 +1039,7 @@ class admin_convert_board_smf extends ipsCommand
 			// Sort out data
 			$save = array(
 				'attach_ext'			=> $row['fileext'],
-				'attach_file'			=> $row['filename'],
+				'attach_file'			=> $row['id_attach'] . '_' . $row['filehash'] . '.' . $row['fileext'],
 				'attach_location'		=> $location,
 				'attach_is_image'		=> $image,
 				'attach_hits'			=> $row['downloads'],
@@ -1038,6 +1051,7 @@ class admin_convert_board_smf extends ipsCommand
 				'attach_rel_module'		=> 'post',
 				'attach_img_width'		=> $row['width'],
 				'attach_img_height'		=> $row['height'],
+				'attach_parent_id'		=> $ipbTopic
 				);
 
 
@@ -1195,10 +1209,11 @@ class admin_convert_board_smf extends ipsCommand
 			$recipient = $row['id_member_from'];
 
 			ipsRegistry::DB('hb')->build(array('select' => '*', 'from' => 'pm_recipients', 'where' => "id_pm={$row['id_pm']}"));
-			ipsRegistry::DB('hb')->execute();
-			while ($to = ipsRegistry::DB('hb')->fetch())
+			$pmsQuery = ipsRegistry::DB('hb')->execute();
+			
+			while ( $to = ipsRegistry::DB('hb')->fetch( $pmsQuery ) )
 			{
-				if ($to['id_member'] == $to['id_member_from'])
+				if ($to['id_member'] == $row['id_member_from'])
 				{
 					continue;
 				}
@@ -1253,7 +1268,7 @@ class admin_convert_board_smf extends ipsCommand
 				'mt_start_time'      => $row['msgtime'],
 				'mt_last_post_time'  => $row['msgtime'],
 				'mt_invited_members' => serialize( array_keys( $_invited ) ),
-				'mt_to_count'		 => count(  array_keys( $_invited ) ),
+				'mt_to_count'		 => count(  array_keys( $_invited ) ) + 1,
 				'mt_to_member_id'	 => $recipient,
 				'mt_replies'		 => 0,
 				'mt_is_draft'		 => 0,

@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * XMB
- * Last Update: $Date: $
- * Last Updated By: $Author: $
+ * Last Update: $Date: 2011-07-12 21:15:48 +0100 (Tue, 12 Jul 2011) $
+ * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: $
+ * @version		$Revision: 550 $
  */
 
 	$info = array(
@@ -279,13 +279,13 @@
 				{
 					if ( substr( $row['user_avatar'], 0, 7 ) )
 					{
-						$profile['avatar_type'] = 'url';
-						$profile['avatar_location'] = $row['user_avatar'];
+						$profile['photo_type'] = 'url';
+						$profile['photo_location'] = $row['user_avatar'];
 					}
 					else
 					{
-						$profile['avatar_type'] = 'upload';
-						$profile['avatar_location'] = $row['user_avatar'];
+						$profile['photo_type'] = 'custom';
+						$profile['photo_location'] = $row['user_avatar'];
 						$path = $us['gal_path'];
 					}
 				}
@@ -553,6 +553,7 @@
 					'post_date'   => $row['post_time'],
 					'post'		  => $this->fixPostData($row['post_text']),
 					'topic_id'    => $row['topic_id'],
+					'post_title'  => $row['post_subject'],
 					);
 				
 				$this->lib->convertPost($row['post_id'], $save);

@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * Woltlab Burning Board
- * Last Update: $Date: 2011-08-02 17:12:19 +0100 (Tue, 02 Aug 2011) $
- * Last Updated By: $Author: AlexHobbs $
+ * Last Update: $Date: 2012-04-18 19:37:55 +0100 (Wed, 18 Apr 2012) $
+ * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 573 $
+ * @version		$Revision: 634 $
  */
 
 $info = array( 'key'	=> 'woltlab',
@@ -1171,7 +1171,7 @@ class admin_convert_board_woltlab extends ipsCommand
 		while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 		{
 			// Set type
-			switch($row['messageType'])
+			switch($row['containerType'])
 			{
 				case 'post':
 					$type = 'post';
@@ -1199,7 +1199,7 @@ class admin_convert_board_woltlab extends ipsCommand
 				'attach_date'		=> $row['uploadTime'],
 				'attach_member_id'	=> $row['userID'],
 				'attach_filesize'	=> $row['attachmentSize'],
-				'attach_rel_id'		=> $row['messageID'],
+				'attach_rel_id'		=> $row['containerID'],
 				'attach_rel_module'	=> $type
 				);
 
@@ -1216,14 +1216,14 @@ class admin_convert_board_woltlab extends ipsCommand
 					case 'post':
 						$field = 'post';
 						$table = 'posts';
-						$pid = $this->lib->getLink($row['messageID'], 'posts');
+						$pid = $this->lib->getLink($row['containerID'], 'posts');
 						$where = "pid={$pid}";
 						break;
 
 					case 'msg':
-						$field = 'msg_id';
+						$field = 'msg_post';
 						$table = 'message_posts';
-						$pid = $this->lib->getLink($row['messageID'], 'pm_posts');
+						$pid = $this->lib->getLink($row['containerID'], 'pm_posts');
 						$where = "msg_id={$pid}";
 						break;
 

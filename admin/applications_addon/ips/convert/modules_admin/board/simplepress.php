@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * SimplePress Forum
- * Last Update: $Date: 2010-07-22 11:29:06 +0200(gio, 22 lug 2010) $
- * Last Updated By: $Author: terabyte $
+ * Last Update: $Date: 2011-07-12 21:15:48 +0100 (Tue, 12 Jul 2011) $
+ * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters
  * @author 		Terabyte
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 447 $
+ * @version		$Revision: 550 $
  */
 
 	$info = array(
@@ -574,24 +574,27 @@
 				if ($row['user_avatar_type'] == 1)
 				{
 					$ex	= substr(strrchr($row['user_avatar'], '.'), 1);
-					$profile['avatar_type'] = 'upload';
-					$profile['avatar_location'] = $us['avatar_salt'].'_'.$row['user_id'].'.'.$ex;
-					$profile['avatar_size'] = $row['user_avatar_width'].'x'.$row['user_avatar_height'];
+					$profile['photo_type'] = 'custom';
+					$profile['photo_location'] = $us['avatar_salt'].'_'.$row['user_id'].'.'.$ex;
+					$profile['pp_main_width'] = $row['user_avatar_width'];
+					$profile['pp_main_height'] = $row['user_avatar_height'];
 					$path = $us['pp_path'];
 				}
 				// URL
 				elseif ($row['user_avatar_type'] == 2)
 				{
-					$profile['avatar_type'] = 'url';
-					$profile['avatar_location'] = $row['user_avatar'];
-					$profile['avatar_size'] = $row['user_avatar_width'].'x'.$row['user_avatar_height'];
+					$profile['photo_type'] = 'url';
+					$profile['photo_location'] = $row['user_avatar'];
+					$profile['pp_main_width'] = $row['user_avatar_width'];
+					$profile['pp_main_height'] = $row['user_avatar_height'];
 				}
 				// Gallery
 				elseif ($row['user_avatar_type'] == 3)
 				{
-					$profile['avatar_type'] = 'upload';
-					$profile['avatar_location'] = $row['user_avatar'];
-					$profile['avatar_size'] = $row['user_avatar_width'].'x'.$row['user_avatar_height'];
+					$profile['photo_type'] = 'custom';
+					$profile['photo_location'] = $row['user_avatar'];
+					$profile['pp_main_width'] = $row['user_avatar_width'];
+					$profile['pp_main_height'] = $row['user_avatar_height'];
 					$path = $us['gal_path'];
 				}
 				
@@ -646,7 +649,7 @@
 				// And go!
 				//-----------------------------------------
 
-				$this->lib->convertMember($info, $members, $profile, $custom, $path, '', FALSE);
+				$this->lib->convertMember($info, $members, $profile, $custom, $path, FALSE);
 			}
 			
 			$this->lib->next();

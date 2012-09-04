@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * MyBB
- * Last Update: $Date: 2009-11-25 16:43:59 +0100(mer, 25 nov 2009) $
- * Last Updated By: $Author: mark $
+ * Last Update: $Date: 2011-07-29 18:42:31 +0100 (Fri, 29 Jul 2011) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 391 $
+ * @version		$Revision: 569 $
  */
 
 $info = array( 'key'   => 'megabbs',
@@ -293,7 +293,7 @@ class admin_convert_board_megabbs extends ipsCommand
 					   'location' => 'Location',
 					   'interests' => 'Interests' );
 
-		$this->lib->saveMoreInfo( 'members', array_merge( array_keys($pcpf), array( 'pp_path' ) ) );
+		$this->lib->saveMoreInfo( 'members', array_merge( array_keys($pcpf), array( 'pp_path', 'pp_type' ) ) );
 
 		//---------------------------
 		// Set up
@@ -318,6 +318,7 @@ class admin_convert_board_megabbs extends ipsCommand
 
 		// We need to know the avatars path
 		$ask['pp_path'] = array('type' => 'text', 'label' => 'Path to avatars uploads folder (no trailing slash, default /path_to_board/profile/uploads): ');
+		$ask['pp_type'] = array ( 'type' => 'dropdown', 'label' => 'Which Member Photo would you like to convert?', 'options' => array ( 'avatar' => 'Avatars', 'profile' => 'Profile Photo' ) );
 
 		// And those custom profile fields
 		$options = array('x' => '-Skip-');
@@ -381,7 +382,6 @@ class admin_convert_board_megabbs extends ipsCommand
 							  'hide_email'			  => !$row['showemail'],
 							  //'email_pm'			  => $row['sendprivatenotifications'],
 							  'view_sigs'			  => 1,
-							  'view_avs'			  => $row['viewavatars'],
 							  'msg_show_notification' => 1,
 							  'last_visit'			  => strtotime($row['lastlogon']),
 							  'last_activity'		  => strtotime($row['lastlogon']),
@@ -397,46 +397,51 @@ class admin_convert_board_megabbs extends ipsCommand
 			// Avatars and profile pictures
 			//-----------------------------------------
 			$path = $us['pp_path'];
-
-			if ( isset($row['avatarurl']) ) $row['AvatarURL'] = $row['avatarurl'];
-			if ( isset($row['avatarimage']) ) $row['AvatarImage'] = $row['avatarimage'];
-			if ( isset($row['photofilename']) ) $row['PhotoFilename'] = $row['photofilename'];
-			if ( isset($row['photoimage']) ) $row['PhotoImage'] = $row['photoimage'];
-
-			if ( $row['AvatarURL'] != '' && $row['AvatarURL'] != NULL )
+			if ( $us['pp_type'] == 'avatar' )
 			{
-				// URL
-				if (preg_match('/http/', $row['AvatarURL']))
+				if ( isset($row['avatarurl']) ) $row['AvatarURL'] = $row['avatarurl'];
+				if ( isset($row['avatarimage']) ) $row['AvatarImage'] = $row['avatarimage'];
+
+				if ( $row['AvatarURL'] != '' && $row['AvatarURL'] != NULL )
 				{
-					$profile['avatar_type'] = 'url';
-					$profile['avatar_location'] = $row['AvatarURL'];
+					// URL
+					if (preg_match('/http/', $row['AvatarURL']))
+					{
+						$profile['photo_type'] = 'url';
+						$profile['photo_location'] = $row['AvatarURL'];
+					}
+				}
+				elseif ( $row['AvatarFilename'] )
+				{
+					$profile['photo_type'] = 'custom';
+					$profile['photo_location'] = $row['avatarfileguid'];
+
+					if (!$row['avatarinfilesystem'])
+					{
+						$profile['photo_data'] = $customavatar['AvatarImage'];
+					}
 				}
 			}
-			elseif ( $row['AvatarFilename'] )
+			else
 			{
-				$profile['avatar_type'] = 'upload';
-				$profile['avatar_location'] = $row['avatarfileguid'];
+				if ( isset($row['photofilename']) ) $row['PhotoFilename'] = $row['photofilename'];
+				if ( isset($row['photoimage']) ) $row['PhotoImage'] = $row['photoimage'];
 
-				if (!$row['avatarinfilesystem'])
+				if ( $row['PhotoFilename'] )
 				{
-					$profile['avatar_data'] = $customavatar['AvatarImage'];
-				}
-			}
+					$profile['pp_main_photo'] = $row['photofileguid'];
 
-			if ( $row['PhotoFilename'] )
-			{
-				$profile['pp_main_photo'] = $row['photofileguid'];
-
-				if (!$row['photoinfilesystem'])
-				{
-					$profile['photo_data'] = $customprofilepic['PhotoImage'];
+					if (!$row['photoinfilesystem'])
+					{
+						$profile['photo_data'] = $customprofilepic['PhotoImage'];
+					}
 				}
 			}
 
 			//-----------------------------------------
 			// And go!
 			//-----------------------------------------
-			$this->lib->convertMember($info, $members, $profile, array(), $path, $path);
+			$this->lib->convertMember($info, $members, $profile, array(), $path);
 		}
 		$this->lib->next();
 	}

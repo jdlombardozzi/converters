@@ -3,17 +3,17 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * IP.Board Merge Tool
- * Last Update: $Date: 2009-11-25 10:43:59 -0500 (Wed, 25 Nov 2009) $
- * Last Updated By: $Author: mark $
+ * Last Update: $Date: 2012-04-14 22:49:14 +0100 (Sat, 14 Apr 2012) $
+ * Last Updated By: $Author: ips_terabyte $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 391 $
+ * @version		$Revision: 633 $
  */
 $info = array( 'key'	=> 'ipboard',
-			   'name'	=> 'IP.Board 3.1.2',
+			   'name'	=> 'IP.Board 3.2.x',
 			   'login'	=> false );
 
 class admin_convert_board_ipboard extends ipsCommand
@@ -33,36 +33,37 @@ class admin_convert_board_ipboard extends ipsCommand
 
 		// array('action' => array('action that must be completed first'))
 		$this->actions = array(
-			'custom_bbcode' => array(),
-			'pfields'		=> array(),
-			'rc_status'		=> array(),
-			'rc_status_sev'	=> array('rc_status'),
-			'forum_perms'	=> array(),
-			'groups' 		=> array('forum_perms'),
-			'members'		=> array('groups', 'custom_bbcode', 'pfields', 'rc_status_sev'),
-			'dnames_change' => array('members'),
-			'profile_comments' => array('members'),
-			'profile_friends' => array('members'),
-			'profile_ratings' => array('members'),
-			'ignored_users'	=> array('members'),
-			'forums'		=> array('forum_perms', 'members'),
-			'moderators'	=> array('groups', 'members', 'forums'),
-			'topics'		=> array('members', 'forums'),
-			'topic_ratings' => array('topics', 'members'),
-			'posts'			=> array('members', 'topics', 'custom_bbcode', 'rc_status_sev'),
-			'reputation_index' => array('members', 'posts'),
-			'polls'			=> array('topics', 'members', 'forums'),
-			'announcements'	=> array('forums', 'members', 'custom_bbcode'),
-			'pms'			=> array('members', 'custom_bbcode', 'rc_status_sev'),
-			'ranks'			=> array(),
-			'attachments_type'	=> array(),
-			'attachments'	=> array('attachments_type', 'posts', 'pms'),
-			'emoticons'		=> array(),
-			'badwords'		=> array(),
-			'banfilters'	=> array(),
-			'rss_import'	=> array('forums', 'members', 'topics'),
-			'topic_mmod'	=> array('forums'),
-			'warn_logs'		=> array('members'),
+			'custom_bbcode' 			=> array(),
+			'pfields'					=> array(),
+			'rc_status'					=> array(),
+			'rc_status_sev'				=> array('rc_status'),
+			'forum_perms'				=> array(),
+			'groups' 					=> array('forum_perms'),
+			'members'					=> array('groups', 'custom_bbcode', 'pfields', 'rc_status_sev'),
+			'dnames_change' 			=> array('members'),
+			'profile_comments' 			=> array('members'),
+			'profile_comment_replies'	=> array ( 'members', 'profile_comments' ),
+			'profile_friends' 			=> array('members'),
+			'profile_ratings' 			=> array('members'),
+			'ignored_users'				=> array('members'),
+			'forums'					=> array('forum_perms', 'members'),
+			'moderators'				=> array('groups', 'members', 'forums'),
+			'topics'					=> array('members', 'forums'),
+			'topic_ratings' 			=> array('topics', 'members'),
+			'posts'						=> array('members', 'topics', 'custom_bbcode', 'rc_status_sev'),
+			'reputation_index' 			=> array('members', 'posts'),
+			'polls'						=> array('topics', 'members', 'forums'),
+			'announcements'				=> array('forums', 'members', 'custom_bbcode'),
+			'pms'						=> array('members', 'custom_bbcode', 'rc_status_sev'),
+			'ranks'						=> array(),
+			'attachments_type'			=> array(),
+			'attachments'				=> array('attachments_type', 'posts', 'pms'),
+			'emoticons'					=> array(),
+			'badwords'					=> array(),
+			'banfilters'				=> array(),
+			'rss_import'				=> array('forums', 'members', 'topics'),
+			'topic_mmod'				=> array('forums'),
+			'warn_logs'					=> array('members'),
 			);
 
 		//-----------------------------------------
@@ -144,6 +145,14 @@ class admin_convert_board_ipboard extends ipsCommand
 			case 'attachments':
 				return $this->lib->countRows('attachments', "attach_rel_module='post' OR attach_rel_module='msg'");
 				break;
+			
+			case 'profile_comments':
+				return $this->lib->countRows ( 'member_status_updates' );
+			break;
+			
+			case 'profile_comment_replies':
+				return $this->lib->countRows ( 'member_status_replies' );
+			break;
 
 			default:
 				return $this->lib->countRows($action);
@@ -197,9 +206,10 @@ class admin_convert_board_ipboard extends ipsCommand
 		//---------------------------
 		// Set up
 		//---------------------------
-		$main = array( 'select' => '*',
-					   'from' 	=> array('members' => 'm'),
-					   'order'  => 'member_id ASC' );
+		$main = array(
+						'select'	=> '*',
+						'from'	=> 'members',
+					  	'order'  => 'member_id ASC' );
 
 		$loop = $this->lib->load('members', $main);
 
@@ -239,7 +249,7 @@ class admin_convert_board_ipboard extends ipsCommand
 			// Filter data
 			foreach (array_keys($row) as $key)
 			{
-				if ( !in_array($key, array('name', 'member_group_id', 'email', 'joined', 'ip_address', 'posts', 'title', 'allow_admin_mails', 'time_offset', 'hide_email', 'email_pm', 'email_full', 'last_post', 'view_sigs', 'view_avs', 'view_pop', 'bday_day', 'bday_month', 'bday_year', 'msg_count_new', 'msg_count_total', 'msg_count_reset', 'msg_show_notification', 'misc', 'last_visit', 'last_activity', 'dst_in_use', 'view_prefs', 'auto_track', 'members_editor_choice', 'members_auto_dst', 'members_display_name', 'members_seo_name', 'members_created_remote', 'members_disable_pm', 'members_l_display_name', 'members_l_username', 'members_profile_views')) )
+				if ( !in_array($key, array('name', 'member_group_id', 'email', 'joined', 'ip_address', 'posts', 'title', 'allow_admin_mails', 'time_offset', 'hide_email', 'email_pm', 'last_post', 'view_sigs', 'view_avs', 'bday_day', 'bday_month', 'bday_year', 'msg_count_new', 'msg_count_total', 'msg_count_reset', 'msg_show_notification', 'misc', 'last_visit', 'last_activity', 'dst_in_use', 'auto_track', 'members_editor_choice', 'members_auto_dst', 'members_display_name', 'members_seo_name', 'members_created_remote', 'members_disable_pm', 'members_l_display_name', 'members_l_username', 'members_profile_views')) )
 				{
 					unset($row[$key]);
 				}
@@ -328,7 +338,38 @@ class admin_convert_board_ipboard extends ipsCommand
 
 		foreach( $loop as $row )
 		{
-			$this->lib->convertGroup($row['g_id'], $row);
+			$save = array(
+					'g_title'				=> $row['g_title'],
+					'g_max_messages'		=> $row['g_max_messages'],
+					'g_max_mass_pm'			=> $row['g_max_mass_pm'],
+					'prefix'				=> $row['prefix'],
+					'suffix'				=> $row['suffix'],
+					'g_view_board'			=> $row['g_view_board'],
+					'g_mem_info'			=> $row['g_mem_info'],
+					'g_other_topics'		=> $row['g_other_topics'],
+					'g_use_search'			=> $row['g_use_search'],
+					'g_email_friend'		=> $row['g_email_friend'],
+					'g_invite_friend'		=> $row['g_invite_friend'],
+					'g_edit_profile'		=> $row['g_edit_profile'],
+					'g_post_new_topics'		=> $row['g_post_new_topics'],
+					'g_reply_own_topics'	=> $row['g_reply_own_topics'],
+					'g_reply_other_topics'	=> $row['g_reply_other_topics'],
+					'g_edit_posts'			=> $row['g_edit_posts'],
+					'g_delete_own_posts'	=> $row['g_delete_own_posts'],
+					'g_open_close_posts'	=> $row['g_open_close_posts'],
+					'g_delete_own_topics'	=> $row['g_delete_own_topics'],
+					'g_post_polls'		 	=> $row['g_post_polls'],
+					'g_vote_polls'		 	=> $row['g_vote_polls'],
+					'g_use_pm'			 => $row['g_use_pm'],
+					'g_is_supmod'		 	=> $row['g_is_supmod'],
+					'g_access_cp'		 	=> $row['g_access_cp'],
+					'g_access_offline'	 	=> $row['g_access_offline'],
+					'g_avoid_q'			 	=> $row['g_avoid_q'],
+					'g_avoid_flood'		 	=> $row['g_avoid_flood'],
+					'g_perm_id'				=> $row['g_perm_id'],
+			);
+					
+			$this->lib->convertGroup($row['g_id'], $save);
 		}
 
 		$this->lib->next();
@@ -400,7 +441,7 @@ class admin_convert_board_ipboard extends ipsCommand
 												'where'  => "p.perm_type='forum' AND p.perm_type_id=f.id",
 												'type'   => 'left'
 											),
-										),
+										)
 					);
 
 		$loop = $this->lib->load('forums', $main, array('forum_tracker', 'rss_export'));
@@ -426,20 +467,28 @@ class admin_convert_board_ipboard extends ipsCommand
 			//-----------------------------------------
 			// And go
 			//-----------------------------------------
+			$save = array('topics'			=> $row['topics'],
+					'posts'			  	=> $row['posts'],
+					'last_post'		  	=> $row['last_post'],
+					'last_poster_name'	=> $row['last_poster_name'],
+					'parent_id'		  	=> $row['parent_id'],
+					'name'			  	=> $row['name'],
+					'description'	  	=> $row['description'],
+					'position'		  	=> $row['position'],
+					'use_ibc'		  	=> $row['use_ibc'],
+					'use_html'		  	=> $row['use_html'],
+					'status'			=> $row['status'],
+					'inc_postcount'	  	=> $row['inc_postcount'],
+					'password'		  	=> $row['password'],
+					'sub_can_post'		=> $row['sub_can_post'],
+					'redirect_on'		=> $row['redirect_on'],
+					'redirect_url'		=> $row['redirect_url'],
+					'preview_posts'		=> $row['preview_posts'],
+					'forum_allow_rating'=> $row['forum_allow_rating'],
+					);
 
-			$this->lib->convertForum($row['id'], $row, $perms);
-
-			//-----------------------------------------
-			// Handle subscriptions
-			//-----------------------------------------
-
-			ipsRegistry::DB('hb')->build(array('select' => '*', 'from' => 'forum_tracker', 'where' => "forum_id={$row['id']}"));
-			ipsRegistry::DB('hb')->execute();
-			while ($tracker = ipsRegistry::DB('hb')->fetch())
-			{
-				$this->lib->convertForumSubscription($tracker['frid'], $tracker);
-			}
-
+			$this->lib->convertForum($row['id'], $save, $perms);
+			
 			//-----------------------------------------
 			// RSS Exports?
 			//-----------------------------------------
@@ -517,18 +566,22 @@ class admin_convert_board_ipboard extends ipsCommand
 
 		while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 		{
-			$this->lib->convertTopic($row['tid'], $row);
-
-			//-----------------------------------------
-			// Handle subscriptions
-			//-----------------------------------------
-
-			ipsRegistry::DB('hb')->build(array('select' => '*', 'from' => 'tracker', 'where' => "topic_id={$row['tid']}"));
-			ipsRegistry::DB('hb')->execute();
-			while ($tracker = ipsRegistry::DB('hb')->fetch())
-			{
-				$this->lib->convertTopicSubscription($tracker['trid'], $tracker);
-			}
+			$save = array( 'title'			  => $row['title'],
+							   'state'			  => $row['state'],
+							   'posts'			  => $row['posts'],
+							   'starter_id'		  => $row['starter_id'],
+							   'starter_name'	  => $row['starter_name'],
+							   'start_date'		  => $row['start_date'],
+							   'last_post'		  => $row['last_post'],
+							   'last_poster_name' => $row['last_poster_name'],
+							   'poll_state'		  => $row['poll_state'],
+							   'views'			  => $row['views'],
+							   'forum_id'		  => $row['forum_id'],
+							   'approved'		  => $row['approved'],
+							   'pinned'			  => $row['pinned'],
+							   'topic_hasattach'  => $row['topic_hasattach'] );
+							   
+			$this->lib->convertTopic($row['tid'], $save);
 		}
 
 		$this->lib->next();
@@ -918,7 +971,7 @@ class admin_convert_board_ipboard extends ipsCommand
 						break;
 
 					case 'msg':
-						$field = 'msg_id';
+						$field = 'msg_post';
 						$table = 'message_posts';
 						$pid = $this->lib->getLink($row['attach_rel_id'], 'pm_posts');
 						$where = "msg_id={$pid}";
@@ -1278,8 +1331,8 @@ class admin_convert_board_ipboard extends ipsCommand
 		//---------------------------
 
 		$main = array(	'select' 	=> '*',
-						'from' 		=> 'profile_comments',
-						'order'		=> 'comment_id ASC',
+						'from' 		=> 'member_status_updates',
+						'order'		=> 'status_id ASC',
 					);
 
 		$loop = $this->lib->load('profile_comments', $main);
@@ -1290,11 +1343,34 @@ class admin_convert_board_ipboard extends ipsCommand
 
 		while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 		{
-			$this->lib->convertProfileComment($row['comment_id'], $row);
+			$this->lib->convertProfileComment($row['status_id'], $row);
 		}
 
 		$this->lib->next();
 
+	}
+
+	/** Convert profile comment replies
+	 * 
+	 * @access private
+	 * @return void
+	 */
+	private function convert_profile_comment_replies ( )
+	{
+		$main = array (
+			'select'	=> '*',
+			'from'		=> 'member_status_replies',
+			'order'		=> 'reply_id ASC',
+		);
+		
+		$loop = $this->lib->load ( 'profile_comment_replies', $main );
+		
+		while ( $row = ipsRegistry::DB ( 'hb' )->fetch ( $this->lib->queryRes ) )
+		{
+			$this->lib->convertProfileCommentReply ( $row['reply_id'], $row );
+		}
+		
+		$this->lib->next ( );
 	}
 
 	/**

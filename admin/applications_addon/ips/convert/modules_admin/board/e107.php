@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * phpBB
- * Last Update: $Date: 2009-12-04 11:37:12 +0100(ven, 04 dic 2009) $
- * Last Updated By: $Author: terabyte $
+ * Last Update: $Date: 2011-07-12 21:15:48 +0100 (Tue, 12 Jul 2011) $
+ * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 396 $
+ * @version		$Revision: 550 $
  */
 
 $info = array( 'key'	=> 'e107',
@@ -22,7 +22,7 @@ class admin_convert_board_e107 extends ipsCommand
 	// Add your old root URL here. No trailing slash.
 	// Temporary fix for fixPostData. See the TODO above that method.
 
-	private $oldrooturl = 'http://www.myka.org';
+	private $oldrooturl = 'http://www.example.org';
 	/**
 	* Main class entry point
 	*
@@ -334,14 +334,14 @@ class admin_convert_board_e107 extends ipsCommand
 				// URL
 				if (preg_match('/http/', $row['user_image']))
 				{
-					$profile['avatar_type'] = 'url';
-					$profile['avatar_location'] = $row['user_image'];
+					$profile['photo_type'] = 'url';
+					$profile['photo_location'] = $row['user_image'];
 				}
 				// Gallery
 				else
 				{
-					$profile['avatar_type'] = 'upload';
-					$profile['avatar_location'] = $row['user_image'];
+					$profile['photo_type'] = 'custom';
+					$profile['photo_location'] = $row['user_image'];
 					$path = $us['pp_path'];
 				}
 			}
@@ -474,7 +474,8 @@ class admin_convert_board_e107 extends ipsCommand
 							'post_date'   => $row['thread_datestamp'],
 							'post'		  => $this->fixPostData($row['thread_thread']),
 							'queued'      => ( $row['thread_active'] == '1' ) ? 0 : 1,
-							'topic_id'    => ( $row['thread_parent'] == '0' ) ? $row['thread_id'] : $row['thread_parent'] );
+							'topic_id'    => ( $row['thread_parent'] == '0' ) ? $row['thread_id'] : $row['thread_parent'],
+							'post_title'  => $row['thread_name'] );
 
 			$this->lib->convertPost($row['thread_id'], $save);
 		}

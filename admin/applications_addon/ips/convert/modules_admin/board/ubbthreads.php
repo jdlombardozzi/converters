@@ -3,20 +3,20 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * UBB.Threads
- * Last Update: $Date: 2010-03-19 11:03:12 +0100(ven, 19 mar 2010) $
- * Last Updated By: $Author: terabyte $
+ * Last Update: $Date: 2011-11-08 00:14:18 +0000 (Tue, 08 Nov 2011) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 437 $
+ * @version		$Revision: 593 $
  */
 
 	$info = array(
 		'key'	=> 'ubbthreads',
 		'name'	=> 'UBB.Threads 7.5',
-		'login'	=> false,
+		'login'	=> true,
 	);
 
 	class admin_convert_board_ubbthreads extends ipsCommand
@@ -213,6 +213,7 @@
 				case 'members':
 				case 'groups':
 				case 'forum_perms':
+				case 'attachments':
 					return true;
 					break;
 
@@ -231,6 +232,10 @@
 		 **/
 		private function fixPostData($post)
 		{
+			// Get rid of 'graemlins'.
+			$post = str_replace( '<<GRAEMLIN_URL>>', 'graemlins', $post );
+			$post = str_replace( '&lt;&lt;GRAEMLIN_URL&gt;&gt;', 'graemlins', $post );
+			
 			return $post;
 		}
 
@@ -432,7 +437,7 @@
 					'joined'			=> $row['USER_REGISTERED_ON'],
 					'username'			=> $row['USER_LOGIN_NAME'],
 					'displayname'		=> $row['USER_DISPLAY_NAME'],
-					'email'				=> $row['USER_REGISTRATION_EMAIL'],
+					'email'				=> $row['USER_REAL_EMAIL'],
 					'md5pass'			=> $row['USER_PASSWORD'],
 					);
 
@@ -469,8 +474,8 @@
 
 				if ($row['USER_AVATAR'])
 				{
-					$profile['avatar_type'] = 'url';
-					$profile['avatar_location'] = $row['USER_AVATAR'];
+					$profile['photo_type'] = 'url';
+					$profile['photo_location'] = $row['USER_AVATAR'];
 				}
 
 				//-----------------------------------------
@@ -501,7 +506,7 @@
 							'order'		=> 'CATEGORY_ID ASC',
 						);
 
-			$loop = $this->lib->load('forums', $main, array(), array('boards', 'FORUMS'));
+			$loop = $this->lib->load('forums', $main);
 
 			//---------------------------
 			// Loop
@@ -509,142 +514,62 @@
 
 			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 			{
-				$this->lib->convertForum('c'.$row['CATEGORY_ID'], array(
+				$this->lib->convertForum( 'c' . $row['CATEGORY_ID'], array(
 					'name'			=> $row['CATEGORY_TITLE'],
 					'description'	=> $row['CATEGORY_DESCRIPTION'],
 					'position'		=> $row['CATEGORY_SORT_ORDER'],
 					'parent_id'		=> -1,
 				), array());
+				
+				// Any children?
+				ipsRegistry::DB('hb')->build(
+					array(
+						'select'	=> '*',
+						'from'		=> 'FORUMS',
+						'where'		=> 'CATEGORY_ID=' . $row['CATEGORY_ID']
+					)
+				);
+				$child = ipsRegistry::DB('hb')->execute();
+				
+				if ( ipsRegistry::DB('hb')->getTotalRows( $child ) )
+				{
+					while( $forum = ipsRegistry::DB('hb')->fetch( $child ) )
+					{
+						// Set info
+						$save = array(
+							'parent_id'			=> $forum['FORUM_PARENT'] ? $forum['FORUM_PARENT'] : 'c' . $row['CATEGORY_ID'],
+							'position'			=> $forum['FORUM_SORT_ORDER'],
+							'name'				=> $forum['FORUM_TITLE'],
+							'description'		=> $forum['FORUM_DESCRIPTION'],
+							'topics'			=> $forum['FORUM_TOPICS'],
+							'posts'				=> $forum['FORUM_POSTS'],
+							'status'			=> $forum['FORUM_IS_ACTIVE'],
+							'conv_parent'		=> $forum['FORUM_PARENT'] ? $forum['FORUM_PARENT'] : 'c' . $row['CATEGORY_ID'],
+							);
+		
+						// Save
+						$this->lib->convertForum($forum['FORUM_ID'], $save, array());
+		
+						//-----------------------------------------
+						// Handle subscriptions
+						//-----------------------------------------
+		
+						ipsRegistry::DB('hb')->build(array('select' => '*', 'from' => 'WATCH_LISTS', 'where' => "WATCH_ID={$forum['FORUM_ID']} AND WATCH_TYPE='f'"));
+						$tlib = ipsRegistry::DB('hb')->execute();
+						while ($tracker = ipsRegistry::DB('hb')->fetch($tlib))
+						{
+							$savetracker = array(
+								'member_id'	=> $tracker['USER_ID'],
+								'forum_id'	=> $tracker['WATCH_ID'],
+								'forum_track_type' => $tracker['WATCH_NOTIFY_IMMEDIATE'] ? 'immediate' : 'none',
+								);
+							$this->lib->convertForumSubscription($tracker['WATCH_ID'].'-'.$tracker['USER_ID'], $savetracker);
+						}
+					}
+				}
 			}
 
 			$this->lib->next();
-
-		}
-
-		/**
-		 * Convert Forums
-		 *
-		 * @access	private
-		 * @return void
-		 **/
-		private function convert_boards()
-		{
-
-			//---------------------------
-			// Set up
-			//---------------------------
-
-			$mainBuild = array(	'select' 	=> '*',
-								'from' 		=> 'FORUMS',
-								'order'		=> 'FORUM_ID ASC',
-							);
-
-			$this->start = intval($this->request['st']);
-			$this->end = $this->start + intval($this->request['cycle']);
-
-			$mainBuild['limit'] = array($this->start, $this->end);
-
-			$this->errors = unserialize($this->settings['conv_error']);
-
-			ipsRegistry::DB('hb')->build($mainBuild);
-			ipsRegistry::DB('hb')->execute();
-
-			if (!ipsRegistry::DB('hb')->getTotalRows())
-			{
-				$action = 'forums';
-				// Save that it's been completed
-				$get = unserialize($this->settings['conv_completed']);
-				$us = $get[$this->lib->app['name']];
-				$us = is_array($us) ? $us : array();
-				if (empty($this->errors))
-				{
-					$us = array_merge($us, array($action => true));
-				}
-				else
-				{
-					$us = array_merge($us, array($action => 'e'));
-				}
-				$get[$this->lib->app['name']] = $us;
-				IPSLib::updateSettings(array('conv_completed' => serialize($get)));
-
-				// Errors?
-				if (!empty($this->errors))
-				{
-					$es = 'The following errors occurred: <ul>';
-					foreach ($this->errors as $e)
-					{
-						$es .= "<li>{$e}</li>";
-					}
-					$es .= '</ul>';
-				}
-				else
-				{
-					$es = 'No problems found.';
-				}
-
-				// Display
-				$this->registry->output->html .= $this->html->convertComplete($info['name'].' Conversion Complete.', array($es, $info['finish']));
-				$this->sendOutput();
-			}
-
-			$i = 1;
-			while ( $row = ipsRegistry::DB('hb')->fetch() )
-			{
-				$records[] = $row;
-			}
-
-			$loop = $records;
-
-			//---------------------------
-			// Loop
-			//---------------------------
-
-			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
-			{
-				// Set info
-				$save = array(
-					'parent_id'			=> $row['FORUM_PARENT'] ? $row['FORUM_PARENT'] : 'c'.$row['CATEGORY_ID'],
-					'position'			=> $row['FORUM_SORT_ORDER'],
-					'name'				=> $row['FORUM_TITLE'],
-					'description'		=> $row['FORUM_DESCRIPTION'],
-					'topics'			=> $row['FORUM_TOPICS'],
-					'posts'				=> $row['FORUM_POSTS'],
-					'inc_postcount'		=> $row['FORUM_POSTS_COUNT'],
-					'status'			=> $row['FORUM_IS_ACTIVE'],
-					);
-
-				// Save
-				$this->lib->convertForum($row['FORUM_ID'], $save, array());
-
-				//-----------------------------------------
-				// Handle subscriptions
-				//-----------------------------------------
-
-				ipsRegistry::DB('hb')->build(array('select' => '*', 'from' => 'WATCH_LISTS', 'where' => "WATCH_ID={$row['FORUM_ID']} AND WATCH_TYPE='f'"));
-				ipsRegistry::DB('hb')->execute();
-				while ($tracker = ipsRegistry::DB('hb')->fetch())
-				{
-					$savetracker = array(
-						'member_id'	=> $tracker['USER_ID'],
-						'forum_id'	=> $tracker['WATCH_ID'],
-						'forum_track_type' => $tracker['WATCH_NOTIFY_IMMEDIATE'] ? 'immediate' : 'none',
-						);
-					$this->lib->convertForumSubscription($tracker['WATCH_ID'].'-'.$tracker['USER_ID'], $savetracker);
-				}
-
-
-			}
-
-			//-----------------------------------------
-			// Next
-			//-----------------------------------------
-
-			$total = $this->request['total'];
-			$pc = round((100 / $total) * $this->end);
-			$message = ($pc > 100) ? 'Finishing...' : "{$pc}% complete";
-			IPSLib::updateSettings(array('conv_error' => serialize($this->errors)));
-			$end = ($this->end > $total) ? $total : $this->end;
-			$this->registry->output->redirect("{$this->settings['base_url']}app=convert&module={$this->lib->app['sw']}&section={$this->lib->app['app_key']}&do={$this->request['do']}&st={$this->end}&cycle={$this->request['cycle']}&total={$total}", "{$end} of {$total} converted<br />{$message}" );
 
 		}
 
@@ -813,7 +738,9 @@
 				// Map Data
 				//-----------------------------------------
 
-				$maps = array();
+				$maps 	= array();
+				$cache	= array();
+				
 				$_invited = array();
 				ipsRegistry::DB('hb')->build(array('select' => '*', 'from' => 'PRIVATE_MESSAGE_USERS', 'where' => "TOPIC_ID={$row['TOPIC_ID']}"));
 				ipsRegistry::DB('hb')->execute();
@@ -906,7 +833,7 @@
 			// We need to know the path
 			//-----------------------------------------
 
-			$this->lib->getMoreInfo('attachments', $loop, array('attach_path' => array('type' => 'text', 'label' => 'The path to the folder where attachments are saved (no trailing slash):')), 'path');
+			$this->lib->getMoreInfo('attachments', $loop, array('attach_path' => array('type' => 'text', 'label' => 'The path to the folder where your UBB.Threads attachments are saved (no trailing slash):')), 'path');
 
 			$get = unserialize($this->settings['conv_extra']);
 			$us = $get[$this->lib->app['name']];
@@ -931,6 +858,20 @@
 
 			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 			{
+				$topic	= ipsRegistry::DB('hb')->buildAndFetch(
+					array(
+						'select'	=> 'TOPIC_ID',
+						'from'		=> 'POSTS',
+						'where'		=> 'POST_ID=' . $row['POST_ID']
+					)
+				);
+				
+				// Now we have the foreign ID, grab our proper one
+				if ( $topic['TOPIC_ID'] )
+				{
+					$ipbTopic = $this->lib->getLink( $topic['TOPIC_ID'], 'topics' );
+				}
+				
 				$save = array(
 					'attach_ext'			=> $row['FILE_TYPE'],
 					'attach_file'			=> $row['FILE_ORIGINAL_NAME'],
@@ -944,6 +885,7 @@
 					'attach_rel_module'		=> 'post',
 					'attach_img_width'		=> $row['FILE_WIDTH'],
 					'attach_img_height'		=> $row['FILE_HEIGHT'],
+					'attach_parent_id'		=> $ipbTopic ? $ipbTopic : 0
 					);
 
 				$this->lib->convertAttachment($row['FILE_ID'], $save, $path);
@@ -1368,10 +1310,10 @@
 			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 			{
 				$save = array(
-					'comment_for_member_id'	=> $row['PROFILE_ID'],
-					'comment_by_member_id'	=> $row['USER_ID'],
-					'comment_date'			=> $row['COMMENT_TIME'],
-					'comment_content'		=> $row['COMMENT_BODY'],
+					'status_member_id'	=> $row['PROFILE_ID'],
+					'status_author_id'	=> $row['USER_ID'],
+					'status_date'			=> $row['COMMENT_TIME'],
+					'status_content'		=> $row['COMMENT_BODY'],
 					);
 				$this->lib->convertProfileComment($row['COMMENT_ID'], $save);
 			}

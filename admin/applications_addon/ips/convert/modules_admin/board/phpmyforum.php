@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * phpMyForum
- * Last Update: $Date: 2010-03-19 11:03:12 +0100(ven, 19 mar 2010) $
- * Last Updated By: $Author: terabyte $
+ * Last Update: $Date: 2011-07-12 21:15:48 +0100 (Tue, 12 Jul 2011) $
+ * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 437 $
+ * @version		$Revision: 550 $
  */
 
 	$info = array(
@@ -428,14 +428,14 @@
 					// URL
 					if ( substr( $row['avatar'], 0, 4) == 'url:' )
 					{
-						$profile['avatar_type'] = 'url';
-						$profile['avatar_location'] = str_replace( 'url:', '', $row['avatar'] );
+						$profile['photo_type'] = 'url';
+						$profile['photo_location'] = str_replace( 'url:', '', $row['avatar'] );
 					}
 					// Upload
 					elseif ( substr( $row['avatar'], 0, 7) == 'upload:' )
 					{
-						$profile['avatar_type'] = 'upload';
-						$profile['avatar_location'] = str_replace( 'upload:', '', $row['avatar'] );
+						$profile['photo_type'] = 'custom';
+						$profile['photo_location'] = str_replace( 'upload:', '', $row['avatar'] );
 						$path = $us['attach_path'];
 					}
 				}

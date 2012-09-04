@@ -14,12 +14,12 @@
  */
 
 	$info = array(
-		'key'	=> 'bbpress',
-		'name'	=> 'bbPress 1.0 (WordPress version)',
+		'key'	=> 'bbpress_standalone',
+		'name'	=> 'bbPress 1.0 (Standalone)',
 		'login'	=> true,
 	);
 	
-	class admin_convert_board_bbpress extends ipsCommand
+	class admin_convert_board_bbpress_standalone extends ipsCommand
 	{
 		/*
 	    * Main class entry point
@@ -114,7 +114,7 @@
 				case 'forums':
 				case 'topics':
 				case 'posts':
-					return $this->lib->countRows('bb_'.$action);
+					return $this->lib->countRows($action);
 					break;
 					
 				default:
@@ -203,7 +203,7 @@
 			//---------------------------
 			
 			$main = array(	'select' 	=> '*',
-							'from' 		=> 'bb_forums',
+							'from' 		=> 'forums',
 							'order'		=> 'forum_id ASC',
 						);
 									
@@ -244,7 +244,7 @@
 			//---------------------------
 			
 			$main = array(	'select' 	=> '*',
-							'from' 		=> 'bb_topics',
+							'from' 		=> 'topics',
 							'order'		=> 'topic_id ASC',
 						);
 			
@@ -288,7 +288,7 @@
 			//---------------------------
 			
 			$main = array(	'select' 	=> '*',
-							'from' 		=> 'bb_posts',
+							'from' 		=> 'posts',
 							'order'		=> 'post_id ASC',
 						);
 			

@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * XMB
- * Last Update: $Date: 2010-03-19 11:03:12 +0100(ven, 19 mar 2010) $
- * Last Updated By: $Author: terabyte $
+ * Last Update: $Date: 2011-11-08 00:14:18 +0000 (Tue, 08 Nov 2011) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 437 $
+ * @version		$Revision: 593 $
  */
 
 	$info = array(
@@ -152,7 +152,7 @@
 					break;
 
 				case 'attachments':
-					return $this->lib->countRows('attachments', 'parentid=0');
+					return $this->lib->countRows('attachments');
 					break;
 
 				case 'banfilters':
@@ -398,6 +398,7 @@
 					'username'			=> $row['username'],
 					'email'				=> $row['email'],
 					'md5pass'			=> $row['password'],
+					'posts'				=> $row['postnum'],
 					);
 
 				// Member info
@@ -430,8 +431,8 @@
 
 				if ($row['avatar'])
 				{
-					$profile['avatar_type'] = 'url';
-					$profile['avatar_location'] = $row['avatar'];
+					$profile['photo_type'] = 'url';
+					$profile['photo_location'] = $row['avatar'];
 				}
 
 				//-----------------------------------------
@@ -615,6 +616,7 @@
 					'approved'			=> 1,
 					'start_date'		=> $firstpost['dateline'],
 					'poll_state'		=> $row['pollopts'],
+					'pinned'			=> 0
 					);
 
 				$this->lib->convertTopic($row['tid'], $save);

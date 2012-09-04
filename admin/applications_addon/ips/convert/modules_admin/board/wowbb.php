@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * Woltlab Burning Board
- * Last Update: $Date: 2009-11-25 16:43:59 +0100(mer, 25 nov 2009) $
- * Last Updated By: $Author: mark $
+ * Last Update: $Date: 2012-04-18 19:37:55 +0100 (Wed, 18 Apr 2012) $
+ * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 391 $
+ * @version		$Revision: 634 $
  */
 
 $info = array(
@@ -50,8 +50,8 @@ class admin_convert_board_wowbb extends ipsCommand
 			'posts'			=> array('members', 'topics'),
 			'polls'			=> array('members', 'topics', 'posts'),
 			'pms'			=> array('members'),
-			'attachments'	=> array('posts', 'pms'),
-			'ranks' => array()
+			//'attachments'	=> array('posts', 'pms'),
+			//'ranks' => array()
 			);
 
 		//-----------------------------------------
@@ -128,10 +128,6 @@ class admin_convert_board_wowbb extends ipsCommand
 	{
 		switch ($action)
 		{
-			case 'attachments':
-				return  $this->lib->countRows('attachments');
-				break;
-
 			case 'forums':
 				return  $this->lib->countRows('forums') + $this->lib->countRows('categories');
 				break;
@@ -165,9 +161,9 @@ class admin_convert_board_wowbb extends ipsCommand
 				return  $this->lib->countRows('posts');
 				break;
 
-			case 'ranks':
+			/*case 'ranks':
 				return  $this->lib->countRows('ratings');
-				break;
+				break;*/
 
 			case 'topics':
 				return  $this->lib->countRows('topics');
@@ -565,8 +561,8 @@ class admin_convert_board_wowbb extends ipsCommand
 			{
 				$splitPos = strrpos( $row['user_avatar'], '/');
 				$path = $path . '/' . substr($row['user_avatar'], 0, $splitPos);
-				$profile['avatar_location'] = substr($row['user_avatar'], $splitPos + 1);
-				$profile['avatar_type'] = 'upload';
+				$profile['pp_main_photo'] = substr($row['user_avatar'], $splitPos + 1);
+				$profile['photo_type'] = 'custom';
 			}
 
 			//-----------------------------------------
@@ -695,7 +691,7 @@ class admin_convert_board_wowbb extends ipsCommand
 			$save = array(
 				'forum_id'			=> $row['forum_id'],
 				'title'				=> $row['topic_name'],
-				'description'       => $row['topic_description'],
+				//'description'       => $row['topic_description'],
 				'start_date'		=> strtotime($row['topic_date_time']),
 				'starter_id'		=> $row['topic_starter_id'],
 				'starter_name'		=> $row['topic_starter_user_name'],
@@ -1013,7 +1009,8 @@ class admin_convert_board_wowbb extends ipsCommand
 				'attach_rel_id'		=> $row['post_id'],
 				'attach_rel_module'	=> 'post',
 				'attach_member_id'	=> $row['user_id'],
-				'attach_filesize'	=> strlen($row['file_contents']) );
+				'attach_filesize'	=> strlen($row['file_contents']),
+				'attach_parent_id'	=> $ipbTopic );
 
 			// Save
 			$done = $this->lib->convertAttachment($row['attachment_id'], $save, $path, TRUE);

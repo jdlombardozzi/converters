@@ -57,7 +57,7 @@
 			$this->lib =  new lib_board( $registry, $html, $this );
 	
 	        $this->html = $this->lib->loadInterface();
-			$this->lib->sendHeader( 'Dokuwiki &rarr; IP.Board Converter' );
+			$this->lib->sendHeader( 'eBlah &rarr; IP.Board Converter' );
 	
 			//-----------------------------------------
 			// Parser

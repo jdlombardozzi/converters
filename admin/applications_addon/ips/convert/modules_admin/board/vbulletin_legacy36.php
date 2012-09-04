@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * vBulletin
- * Last Update: $Date: 2011-06-08 12:44:41 -0400 (Wed, 08 Jun 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2012-05-29 16:40:05 +0100 (Tue, 29 May 2012) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 529 $
+ * @version		$Revision: 638 $
  */
 
 
@@ -503,7 +503,7 @@
 				'homepage'		=> 'Website',
 				);
 
-			$this->lib->saveMoreInfo( 'members', array_merge( array_keys($pcpf), array( 'avvy_path', 'pp_path' ) ) );
+			$this->lib->saveMoreInfo( 'members', array_merge( array_keys($pcpf), array( /*'avvy_path',*/ 'pp_path', 'pp_type' ) ) );
 
 			//---------------------------
 			// Set up
@@ -538,8 +538,9 @@
 			$ask = array();
 
 			// We need to know the avatars path
-			$ask['avvy_path'] = array('type' => 'text', 'label' => 'The path to the folder where custom avatars are saved (no trailing slash - usually /path_to_vb/customavatars):');
-			$ask['pp_path'] = array('type' => 'text', 'label' => 'The path to the folder where custom profile pictures are saved (no trailing slash - usually /path_to_vb/customprofilepics):');
+			//$ask['avvy_path'] = array('type' => 'text', 'label' => 'The path to the folder where custom avatars are saved (no trailing slash - usually /path_to_vb/customavatars):');
+			$ask['pp_path'] = array('type' => 'text', 'label' => 'The path to the folder where custom profile pictures or avatars are saved (no trailing slash - usually /path_to_vb/customprofilepics or /path_to_vb/customavatars):');
+			$ask['pp_type'] = array ( 'type' => 'dropdown', 'label' => 'The Member Photos to convert?', 'options' => array ( 'avatar' => 'Avatars', 'profile' => 'Profile Photos' ) );
 
 			// And those custom profile fields
 			$options = array('x' => '-Skip-');
@@ -706,50 +707,51 @@
 				//-----------------------------------------
 				// Avatars and profile pictures
 				//-----------------------------------------
-
-				$customavatar = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => '*', 'from' => 'customavatar', 'where' => "userid='{$row['userid']}'" ) );
-				if ($customavatar)
+				$profile['photo_type'] = 'custom';
+				if ( $us['pp_type'] == 'avatar' )
 				{
-					$profile['avatar_type'] = 'upload';
-					$profile['avatar_location'] = $customavatar['filename'];
-
-					if ($customavatar['filedata'])
+					$customavatar = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => '*', 'from' => 'customavatar', 'where' => "userid='{$row['userid']}'" ) );
+					if ($customavatar)
 					{
-						$profile['avatar_data'] = $customavatar['filedata'];
+						if ($customavatar['filedata'])
+						{
+							$profile['photo_data'] = $customavatar['filedata'];
+						}
+						else
+						{
+							$profile['pp_main_photo'] = "avatar{$customavatar['userid']}_{$row['avatarrevision']}.gif";
+						}
+						
+						$profile['pp_main_width'] = $customavatar['width'];
+						$profile['pp_main_height'] = $customavatar['height'];
+						$profile['photo_filesize'] = $customavatar['filesize'];
 					}
-					else
-					{
-						$profile['avatar_location'] = "avatar{$customavatar['userid']}_{$row['avatarrevision']}.gif";
-					}
-
-					$profile['avatar_size'] = $customavatar['width'].'x'.$customavatar['height'];
-					$profile['avatar_filesize'] = $customavatar['filesize'];
 				}
-
-				$customprofilepic = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => '*', 'from' => 'customprofilepic', 'where' => "userid='{$row['userid']}'" ) );
-				if ($customprofilepic)
+				else
 				{
-					$profile['pp_main_photo'] = $customprofilepic['filename'];
-
-					if ($customprofilepic['filedata'])
+					$customprofilepic = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => '*', 'from' => 'customprofilepic', 'where' => "userid='{$row['userid']}'" ) );
+					if ($customprofilepic)
 					{
-						$profile['photo_data'] = $customprofilepic['filedata'];
+						if ($customprofilepic['filedata'])
+						{
+							$profile['photo_data'] = $customprofilepic['filedata'];
+						}
+						else
+						{
+							$profile['pp_main_photo'] = "profilepic{$customprofilepic['userid']}_{$row['profilepicrevision']}.gif";
+						}
+	
+						$profile['pp_main_width'] = $customprofilepic['width'];
+						$profile['pp_main_height'] = $customprofilepic['height'];
+						$profile['photo_filesize'] = $customprofilepic['filesize'];
 					}
-					else
-					{
-						$profile['pp_main_photo'] = "profilepic{$customprofilepic['userid']}_{$row['profilepicrevision']}.gif";
-					}
-
-					$profile['pp_main_width'] = $customprofilepic['width'];
-					$profile['pp_main_height'] = $customprofilepic['height'];
-					$profile['photo_filesize'] = $customprofilepic['filesize'];
 				}
 
 				//-----------------------------------------
 				// Go
 				//-----------------------------------------
 
-				$this->lib->convertMember($info, $members, $profile, $custom, $us['avvy_path'], $us['pp_path']);
+				$this->lib->convertMember($info, $members, $profile, $custom, $us['pp_path']);
 
 			}
 
@@ -914,7 +916,7 @@
 					'poll_state'		=> ($row['pollid'] > 0) ? 1 : 0,
 					'views'			  	=> $row['views'],
 					'forum_id'		  	=> $row['forumid'],
-					'approved'		  	=> ( $row['visible'] == 2 ) ? 0 : $row['visible'],
+					'approved'		  	=> ( $row['visible'] == 2 ) ? 0 : 1,
 					'pinned'			=> $row['sticky'],
 					'topic_hasattach'	=> $row['attach'],
 					);
@@ -1037,6 +1039,7 @@
 					'post'		 	=> $this->fixPostData($row['pagetext']),
 					'queued'      	=> $row['visible'] != 1 ? 1 : 0,
 					'topic_id'    	=> $row['threadid'],
+					'post_title'  	=> $row['title'],
 					'rep_points'	=> $rep,
 					);
 
@@ -1115,7 +1118,7 @@
 						'member_choices'=> serialize(array(1 => $choice)),
 						);
 
-					$this->lib->convertPollVoter($row['pollid'], $vsave);
+					$this->lib->convertPollVoter($voter['pollvoteid'], $vsave);
 
 				}
 
@@ -1136,7 +1139,7 @@
 				$save = array(
 					'tid'			=> $topic['threadid'],
 					'start_date'	=> $row['dateline'],
-					'choices'   	=> addslashes(serialize($poll_array)),
+					'choices'   	=> serialize($poll_array),
 					'starter_id'	=> $topic['postuserid'],
 					'votes'     	=> $row['voters'],
 					'forum_id'  	=> $topic['forumid'],
@@ -1144,7 +1147,7 @@
 					'poll_view_voters' => $row['public'],
 					);
 
-				$this->lib->convertPoll($row['pollid'], $save);
+				$this->lib->convertPoll($voter['pollvoteid'], $save);
 			}
 
 			$this->lib->next();
@@ -1376,6 +1379,21 @@
 				{
 					$image = true;
 				}
+				
+				// Need to grab the topic ID
+				$topicid = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => 'threadid', 'from' => 'post', 'where' => "postid='" . intval( $row['postid'] ) . "'" ) );
+				
+				// Grab our real id
+				if ( ! $topicid )
+				{
+					$this->lib->logError ( $row['attachmentid'], 'Orphaned Attachment - Post Missing' );
+					continue;
+				}
+				else
+				{
+					// Grab our real id
+					$ipbTopic	= $this->lib->getLink( $topicid['threadid'], 'topics', true );
+				}
 
 				$save = array(
 					'attach_ext'			=> $row['extension'],
@@ -1387,11 +1405,19 @@
 					'attach_filesize'		=> $row['filesize'],
 					'attach_rel_id'			=> $row['postid'],
 					'attach_rel_module'		=> 'post',
+					'attach_parent_id'		=> $ipbTopic
 					);
 
 				//-----------------------------------------
 				// Database
 				//-----------------------------------------
+
+				if ( !$row['filedata'] && $path == '.' )
+				{
+					// Race issue... seen it a couple times, the file data is lost but the row still exists.
+					$this->lib->logError ( $row['attachmentid'], 'No File Data' );
+					continue;
+				}
 
 				if ($row['filedata'])
 				{
@@ -1407,10 +1433,10 @@
 
 				else
 				{
-					if ($path == '.')
+					/*if ($path == '.')
 					{
 						$this->lib->error('You entered "." for the path but you have some attachments in the file system');
-					}
+					}*/
 
 					$save['attach_location'] = implode('/', preg_split('//', $filedata['userid'],  -1, PREG_SPLIT_NO_EMPTY));
 					$save['attach_location'] .= "/{$row['attachmentid']}.attach";
@@ -2127,8 +2153,8 @@
 					'wlog_mid'		=> $row['userid'],
 					'wlog_notes'	=> serialize(array('content' => $this->fixPostData($row['note']))),
 					'wlog_date'		=> $row['dateline'],
-					'wlog_type'		=> ($row['action'] == 1) ? 'neg' : 'pos',
-					'wlog_addedby'	=> $row['actionuserid']
+					'wlog_type'		=> ($row['action'] == 0) ? 'neg' : 'pos',
+					'wlog_addedby'	=> $row['whoadded']
 					);
 
 				//-----------------------------------------

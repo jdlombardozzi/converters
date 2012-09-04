@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.1 Converters
  * Kunena 1.6 Converter
- * Last Update: $Date: 2011-07-15 22:47:41 +0100 (Fri, 15 Jul 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2012-03-20 16:52:44 +0000 (Tue, 20 Mar 2012) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Ryan Ashbrook
  * @copyright	(c) 2011 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 556 $
+ * @version		$Revision: 629 $
  */
 
 $info = array (
@@ -22,7 +22,7 @@ $info = array (
 //TODO:Investigate possibility of not requiring a parent, in case clients want to just get Kunena data and not Joomla.
 // Highly doubt it's possible, though.
 $parent = array (
-	'required'	=> true, 
+	'required'	=> false, 
 	'choices'	=> array (
 		array (
 			'app'	=> 'ccs',
@@ -34,11 +34,29 @@ $parent = array (
 
 class admin_convert_board_kunena extends ipsCommand
 {
+	protected $usingParent = TRUE;
+	
 	public function doExecute ( ipsRegistry $registry )
 	{
 		$this->kunena_prefix = 'kunena_';
 		
-		$this->actions = array (
+		$forSome = array ( );
+		
+		// See if we specified a parent product
+		$app = $this->DB->buildAndFetch( array( 'select' => '*', 'from' => 'conv_apps', 'where' => "name='{$this->settings['conv_current']}'" ) );
+		
+		if ( !$app['parent'] )
+		{
+			$this->usingParent = FALSE;
+			
+			$forSome = array (
+				'forum_perms'				=> array ( ),
+				'groups'					=> array ( 'forum_perms' ),
+				'members'					=> array ( 'groups', 'forum_perms' ),
+			);
+		}
+		
+		$forAll = array (
 			'forums'			=> array ( 'forum_perms', 'groups' ),
 			'moderators'		=> array ( 'members', 'forums' ),
 			'topics'			=> array ( 'members', 'forums' ),
@@ -48,12 +66,14 @@ class admin_convert_board_kunena extends ipsCommand
 			'attachments'		=> array ( 'members', 'posts' ),
 		);
 		
+		$this->actions = array_merge ( $forSome, $forAll );
+		
 		require_once ( IPSLib::getAppDir ( 'convert' ) . '/sources/lib_master.php' );
 		require_once ( IPSLib::getAppDir ( 'convert' ) . '/sources/lib_board.php' );
 		$this->lib = new lib_board ( $registry, $html, $this );
 		
 		$this->html = $this->lib->loadInterface ( );
-		$this->lib->sendHeader ( 'Kunana 1.6 &rarr; IP.Board Converter' );
+		$this->lib->sendHeader ( 'Kunena 1.6 &rarr; IP.Board Converter' );
 		
 		$this->HB = $this->lib->connect ( );
 		
@@ -81,6 +101,18 @@ class admin_convert_board_kunena extends ipsCommand
 	{
 		switch ( $action )
 		{
+			case 'forum_perms':
+				return $this->lib->countRows ( 'usergroups' );
+			break;
+			
+			case 'groups':
+				return $this->lib->countRows ( 'usergroups' );
+			break;
+			
+			case 'members':
+				return $this->lib->countRows ( 'users' );
+			break;
+			
 			case 'forums':
 				return $this->lib->countRows ( $this->kunena_prefix . 'categories' );
 			break;
@@ -124,6 +156,8 @@ class admin_convert_board_kunena extends ipsCommand
 		switch ( $action )
 		{
 			case 'attachments':
+			case 'forum_perms':
+			case 'groups':
 				return true;
 			break;
 			
@@ -136,6 +170,151 @@ class admin_convert_board_kunena extends ipsCommand
 	private function fixPostData ( $post )
 	{
 		return $post;
+	}
+	
+	private function convert_forum_perms ( )
+	{
+		$this->lib->saveMoreInfo ( 'forum_perms', 'map' );
+		
+		$main = array (
+			'select'	=> '*',
+			'from'		=> 'usergroups',
+			'order'		=> 'id ASC',
+		);
+		
+		$loop = $this->lib->load ( 'forum_perms', $main, array(), array(), TRUE );
+		
+		$this->lib->getMoreInfo ( 'forum_perms', $loop, array (
+			'new' 	=> '--Create New Set--',
+			'ot'	=> 'Old Permission Set',
+			'nt'	=> 'New Permission Set',
+		), '', array (
+			'idf'	=> 'id',
+			'nf'	=> 'title',
+		) );
+		
+		foreach ( $loop AS $row )
+		{
+			$this->lib->convertPermSet ( $row['id'], $row['title'] );
+		}
+		
+		$this->lib->next ( );
+	}
+
+	private function convert_groups ( )
+	{
+		$this->lib->saveMoreInfo ( 'groups', 'map' );
+		
+		$main = array (
+			'select'	=> '*',
+			'from'		=> 'usergroups',
+			'order'		=> 'id ASC',
+		);
+		
+		$loop = $this->lib->load ( 'groups', $main, array(), array(), TRUE );
+		
+		$this->lib->getMoreInfo ( 'groups', $loop, array (
+			'new'	=> '--Create New Group--',
+			'ot'	=> 'Old Group',
+			'nt'	=> 'New Group',
+		), '', array (
+			'idf'	=> 'id',
+			'nf'	=> 'title',
+		) );
+		
+		foreach ( $loop AS $row )
+		{
+			$save = array (
+				'g_title'				=> $row['title'],
+				'g_view_board'			=> 1,
+				'g_mem_info'			=> 1,
+				'g_other_topics'		=> 1,
+				'g_use_search'			=> 1,
+				'g_edit_profile'		=> 1,
+				'g_post_new_topics'		=> 1,
+				'g_reply_own_topics'	=> 1,
+				'g_reply_other_topics'	=> 1,
+				'g_edit_posts'			=> 1,
+				'g_delete_own_posts'	=> 0,
+				'g_open_close_posts'	=> 0,
+				'g_delete_own_topics'	=> 0,
+				'g_post_polls'		 	=> 1,
+				'g_vote_polls'		 	=> 1,
+				'g_use_pm'			 	=> 1,
+				'g_perm_id'				=> $row['id'],
+			);
+			
+			$this->lib->convertGroup ( $row['id'], $save );
+		}
+		
+		$this->lib->next ( );
+	}
+
+	private function convert_members ( )
+	{
+		$main = array (
+			'select'	=> '*',
+			'from'		=> 'users',
+			'order'		=> 'id ASC',
+		);
+		
+		$loop = $this->lib->load ( 'members', $main );
+		
+		while ( $row = ipsRegistry::DB ( 'hb' )->fetch ( $this->lib->queryRes ) )
+		{
+			// Extract password and salt.
+			$pass = explode ( ':', $row['password'] );
+			
+			// Figure out our usergroups. Go based on Highest ID (for now...)
+			ipsRegistry::DB ( 'hb' )->build ( array (
+				'select'	=> 'group_id',
+				'from'		=> 'user_usergroup_map',
+				'where'		=> 'user_id = ' . $row['id'],
+				'order'		=> 'group_id ASC',
+			) );
+			$groupsQry = ipsRegistry::DB ( 'hb' )->execute ( );
+			$groups = ipsRegistry::DB ( 'hb' )->fetch ( $groupsQry );
+			
+			// Snag primary group... go based on ID, since Joomla does not define a difference.
+			$primary = array_pop ( $groups );
+			
+			$secondaries_array = array ( );
+			// And compile the rest.
+			foreach ( $groups AS $group )
+			{
+				$secondaries_array = array_merge ( $secondaries_array, array ( $group['group_id'] ) );
+			}
+			
+			$secondaries = implode ( ',', $secondaries_array );
+			
+			// Store basic information.
+			$info = array (
+				'id'				=> $row['id'],
+				'email'				=> $row['email'],
+				'password'			=> $pass[0],
+				'username'			=> $row['username'],
+				'displayname'		=> $row['name'],
+				'joined'			=> strtotime ( $row['registerDate'] ),
+				'group'				=> $this->lib->getLink( $primary, 'groups', true, $this->usingParent ),
+				'secondary_groups'	=> $secondaries,
+			);
+			
+			// Store members information
+			$members = array (
+				'last_visit'	=> strtotime ( $row['lastVisitDate'] ),
+				'last_activity'	=> strtotime ( $row['lastVisitDate'] ),
+				'misc'			=> $pass[1],
+			);
+			
+			if ( $row['block'] )
+			{
+				$member['member_banned'] = 1;
+			}
+			
+			$this->lib->convertMember( $info, $members, array(), array(), '', !$this->usingParent );
+		}
+		
+		$this->lib->next();
 	}
 	
 	private function convert_forums ( )
@@ -154,7 +333,7 @@ class admin_convert_board_kunena extends ipsCommand
 				'topics'				=> $row['numTopics'],
 				'posts'					=> $row['numPosts'],
 				'last_post'				=> $row['time_last_msg'],
-				'parent_id'				=> ( !$row['parent_id'] ? -1 : $row['parent_id'] ),
+				'parent_id'				=> ( !$row['parent'] ? -1 : $row['parent'] ),
 				'name'					=> $row['name'],
 				'description'			=> $row['description'],
 				'position'				=> $row['ordering'],
@@ -209,7 +388,7 @@ class admin_convert_board_kunena extends ipsCommand
 				'split_merge'	=> 1,
 			);
 			
-			$this->lib->convertModerator ( $i, $save );
+			$this->lib->convertModerator ( $i, $save, true );
 			$i++;
 		}
 		
@@ -236,16 +415,17 @@ class admin_convert_board_kunena extends ipsCommand
 				'starter_id'	=> $row['userid'],
 				'start_date'	=> $row['time'],
 				'forum_id'		=> $row['catid'],
+				'pinned'		=> ( $row['ordering'] > 0 ? 1 : 0 ),
 				'approved'		=> 1,
 			);
 			
 			// Check for a poll.
-			if ( ipsRegistry::buildAndFetch ( array ( 'select' => 'id, threadid', 'from' => $this->kunena_prefix . 'polls', 'where' => 'threadid = ' . $row['id'] ) ) )
+			if ( ipsRegistry::DB('hb')->buildAndFetch( array ( 'select' => 'id, threadid', 'from' => $this->kunena_prefix . 'polls', 'where' => 'threadid = ' . $row['id'] ) ) )
 			{
 				$save['poll_state'] = 1;
 			}
 			
-			$this->lib->convertTopic ( $row['id'], $save );
+			$this->lib->convertTopic ( $row['id'], $save, true );
 		}
 		
 		$this->lib->next ( );
@@ -283,10 +463,10 @@ class admin_convert_board_kunena extends ipsCommand
 				'topic_id'		=> $row['thread'],
 			);
 			
-			$this->lib->convertPost ( $row['id'], $save );
+			$this->lib->convertPost ( $row['id'], $save, true );
 		}
 		
-		$this->lib->next ( );
+		$this->lib->next();
 	}
 	
 	private function convert_reputation_index ( )
@@ -311,7 +491,7 @@ class admin_convert_board_kunena extends ipsCommand
 				'rep_rating'	=> 1,
 			);
 			
-			$this->lib->convertRep ( $i, $save );
+			$this->lib->convertRep ( $i, $save, true );
 			$i++;
 		}
 		
@@ -362,7 +542,7 @@ class admin_convert_board_kunena extends ipsCommand
 					'forum_id'		=> $topic['catid'],
 					'member_choices'=> serialize ( array ( 1 => array ( $voter['lastvote'] ) ) ),
 				);
-				$this->lib->convertPollVoter ( $row['id'], $vsave );
+				$this->lib->convertPollVoter ( $row['id'], $vsave, true );
 			}
 			
 			$options = array ( );
@@ -384,20 +564,21 @@ class admin_convert_board_kunena extends ipsCommand
 				1 => array (
 					'tid'		=> $row['threadid'],
 					'question'	=> str_replace ( "'", "&#39;", $row['title'] ),
-					''
+					'choice'	=> $options,
+					'votes'	=> $total_votes
 				)
 			);
 			
 			$save = array (
 				'tid'			=> $row['threadid'],
 				'start_date'	=> time ( ),
-				'choices'		=> addslashes ( serialize ( $poll_array ) ),
+				'choices'		=> serialize ( $poll_array ),
 				'starter_id'	=> $topic['userid'],
 				'forum_id'		=> $topic['catid'],
 				'poll_question'	=> str_replace( "'" , '&#39;',$row['title'] ),
 			);
 			
-			$this->lib->convertPoll ( $row['id'], $save );
+			$this->lib->convertPoll ( $row['id'], $save, true );
 		}
 		
 		$this->lib->next ( );
@@ -456,7 +637,31 @@ class admin_convert_board_kunena extends ipsCommand
 				'attach_location'	=> $row['folder'] . '/' . $row['filename'],
 			);
 			
-			$this->lib->convertAttachment ( $row['id'], $save, $path );
+			// Grab the parent 'topic' ID
+			$topic = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => 'parent', 'from' => $this->kunena_prefix . 'messages', 'where' => "id='" . intval( $row['mesid'] ) . "'" ) );
+			
+			if ( $topic['parent'] )
+			{
+				$save['attach_parent_id'] = $this->lib->getLink( $topic['parent'], 'topics', true );
+			}
+			
+			$done = $this->lib->convertAttachment ( $row['id'], $save, $path );
+			
+			if ( $done === true )
+			{
+				$aid = $this->lib->getLink($row['id'], 'attachments');
+				$pid = $this->lib->getLink($save['attach_rel_id'], 'posts');
+
+				if ( $pid )
+				{
+					$attachrow = $this->DB->buildAndFetch( array( 'select' => 'post', 'from' => 'posts', 'where' => "pid={$pid}" ) );
+
+					$rawaid = $row['attachmentid'];
+					$update = preg_replace("/\[attachment={$rawaid}\](.+?)\[\/attachment\]/i", "[attachment={$aid}:{$save['attach_location']}]", $attachrow['post']);
+
+					$this->DB->update('posts', array('post' => $update), "pid={$pid}");
+				}
+			}
 		}
 		
 		$this->lib->next ( );

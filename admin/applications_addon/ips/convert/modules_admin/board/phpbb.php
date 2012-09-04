@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * phpBB
- * Last Update: $Date: 2010-03-19 11:03:12 +0100(ven, 19 mar 2010) $
- * Last Updated By: $Author: terabyte $
+ * Last Update: $Date: 2012-04-14 22:49:14 +0100 (Sat, 14 Apr 2012) $
+ * Last Updated By: $Author: ips_terabyte $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 437 $
+ * @version		$Revision: 633 $
  */
 
 	$info = array(
@@ -568,7 +568,10 @@
 				$time_arry = explode( ".", $row['user_timezone']);
 				$time_offset  = $time_arry[0];
 				
-			 	if ($bday != " 0- 0-   0")
+				// Birthday
+				$bday = $row['user_birthday'];
+				
+			 	if ($bday != " 0- 0-   0" && $bday)
 			 	{
   					$bday_day = substr($bday,0,2);
   					$bday_month = substr($bday,3,2); 
@@ -614,24 +617,27 @@
 				if ($row['user_avatar_type'] == 1)
 				{
 					$ex	= substr(strrchr($row['user_avatar'], '.'), 1);
-					$profile['avatar_type'] = 'upload';
-					$profile['avatar_location'] = $us['avatar_salt'].'_'.$row['user_id'].'.'.$ex;
-					$profile['avatar_size'] = $row['user_avatar_width'].'x'.$row['user_avatar_height'];
+					$profile['photo_type'] = 'custom';
+					$profile['photo_location'] = $us['avatar_salt'].'_'.$row['user_id'].'.'.$ex;
+					$profile['pp_main_width'] = $row['user_avatar_width'];
+					$profile['pp_main_height'] = $row['user_avatar_height'];
 					$path = $us['pp_path'];
 				}
 				// URL
 				elseif ($row['user_avatar_type'] == 2)
 				{
-					$profile['avatar_type'] = 'url';
-					$profile['avatar_location'] = $row['user_avatar'];
-					$profile['avatar_size'] = $row['user_avatar_width'].'x'.$row['user_avatar_height'];
+					$profile['photo_type'] = 'url';
+					$profile['photo_location'] = $row['user_avatar'];
+					$profile['pp_main_width'] = $row['user_avatar_width'];
+					$profile['pp_main_height'] = $row['user_avatar_height'];
 				}
 				// Gallery
 				elseif ($row['user_avatar_type'] == 3)
 				{
-					$profile['avatar_type'] = 'upload';
-					$profile['avatar_location'] = $row['user_avatar'];
-					$profile['avatar_size'] = $row['user_avatar_width'].'x'.$row['user_avatar_height'];
+					$profile['photo_type'] = 'custom';
+					$profile['photo_location'] = $row['user_avatar'];
+					$profile['pp_main_width'] = $row['user_avatar_width'];
+					$profile['pp_main_height'] = $row['user_avatar_height'];
 					$path = $us['gal_path'];
 				}
 
@@ -775,11 +781,15 @@
 				ipsRegistry::DB('hb')->execute();
 				while ($tracker = ipsRegistry::DB('hb')->fetch())
 				{
-					$savetracker = array(
-						'member_id'	=> $tracker['user_id'],
-						'forum_id'	=> $tracker['forum_id'],
-						);
-					$this->lib->convertForumSubscription($tracker['forum_id'].'-'.$tracker['user_id'], $savetracker);
+					if ( ! isset( $savetracker[ $tracker['user_id'] ] ) )
+					{
+						$savetracker[$tracker['user_id']] = array(
+							'member_id'	=> $tracker['user_id'],
+							'forum_id'	=> $tracker['forum_id'],
+							);
+							
+						$this->lib->convertForumSubscription($tracker['forum_id'].'-'.$tracker['user_id'], $savetracker);
+					}
 				}
 
 			}
@@ -850,11 +860,15 @@
 				ipsRegistry::DB('hb')->execute();
 				while ($tracker = ipsRegistry::DB('hb')->fetch())
 				{
-					$savetracker = array(
-						'member_id'	=> $tracker['user_id'],
-						'topic_id'	=> $tracker['topic_id'],
-						);
-					$this->lib->convertTopicSubscription($tracker['topic_id'].'-'.$tracker['user_id'], $savetracker);
+					if ( ! isset( $savetracker[ $tracker['user_id'] ] ) )
+					{
+						$savetracker[$tracker['user_id']] = array(
+							'member_id'	=> $tracker['user_id'],
+							'forum_id'	=> $tracker['topic_id'],
+							);
+							
+						$this->lib->convertTopicSubscription($tracker['topic_id'].'-'.$tracker['user_id'], $savetracker);
+					}
 				}
 			}
 
@@ -905,7 +919,8 @@
 					'post_date'   => $row['post_time'],
 					'post'		  => $this->fixPostData($row['post_text']),
 					'queued'      => $row['post_approved'] == 1 ? 0 : 1,
-					'topic_id'    => $row['topic_id']
+					'topic_id'    => $row['topic_id'],
+					'post_title'  => $row['post_subject'],
 					);
 
 				$this->lib->convertPost($row['post_id'], $save);
@@ -914,7 +929,7 @@
 				// Report Center
 				//-----------------------------------------
 
-				$link = $this->lib->getLink($row['topic_id'], 'topics');
+				$link = $this->lib->getLink($row['topic_id'], 'topics', TRUE);
 				if(!$link)
 				{
 					continue;
@@ -1247,8 +1262,8 @@
 					'attach_filesize'		=> $row['filesize'],
 					'attach_rel_id'			=> $row['post_msg_id'],
 					'attach_rel_module'		=> $row['in_message'] ? 'msg' : 'post',
+					'attach_parent_id'		=> $row['topic_id']
 					);
-
 
 				// Send em on
 				$done = $this->lib->convertAttachment($row['attach_id'], $save, $path);
@@ -1268,7 +1283,7 @@
 							break;
 
 						case 'msg':
-							$field = 'msg_id';
+							$field = 'msg_post';
 							$table = 'message_posts';
 							$pid = $this->lib->getLink($save['attach_rel_id'], 'pm_posts');
 							$where = "msg_id={$pid}";

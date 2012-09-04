@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * SMF LEGACY (SMF 1.1)
- * Last Update: $Date: $
- * Last Updated By: $Author: $
+ * Last Update: $Date: 2011-11-08 00:14:18 +0000 (Tue, 08 Nov 2011) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: $
+ * @version		$Revision: 593 $
  */
 
 /*
@@ -219,7 +219,7 @@ class admin_convert_board_smf_legacy extends ipsCommand
 		$text = str_replace('[/li]', '', $text);
 
 		// Take care of the img tags too
-		$text = preg_replace("#\[img width=(\d+) height=(\d+)\](.+)\[\/img\]#i", "[img]$3[/img]", $text);
+		$text = preg_replace("#\[img width=(\d+) height=(\d+)\](.+?)\[\/img\]#i", "[img]$3[/img]", $text);
 
 		return $text;
 	}
@@ -405,11 +405,13 @@ class admin_convert_board_smf_legacy extends ipsCommand
 			$info = array(
 				'id'				=> $row['ID_MEMBER'],
 				'username'			=> $row['memberName'],
+				'displayname'		=> $row['realName'],
 				'joined'			=> $row['dateRegistered'],
 				'group'				=> $row['ID_GROUP'],
 				'password'			=> $row['passwd'],
 				'email'				=> $row['emailAddress'],
 				'secondary_groups'	=> $row['additionalGroups'],
+				'posts'				=> $row['posts'],
 				);
 
 			// Member info
@@ -418,9 +420,9 @@ class admin_convert_board_smf_legacy extends ipsCommand
 			$members = array(
 				'posts'				=> $row['posts'],
 				'last_visit'		=> $row['lastLogin'],
-				'bday_day'			=> ($row['birthdate']) ? $birthday[2] : '',
-				'bday_month'		=> ($row['birthdate']) ? $birthday[1] : '',
-				'bday_year'			=> ($row['birthdate']) ? $birthday[0] : '',
+				'bday_day'			=> ($row['birthdate']) ? $birthday[2] : 0,
+				'bday_month'		=> ($row['birthdate']) ? $birthday[1] : 0,
+				'bday_year'			=> ($row['birthdate']) ? $birthday[0] : 0,
 				'hide_email' 		=> $row['hideEmail'],
 				'time_offset'		=> $row['timeOffset'],
 				'email_pm'      	=> $row['pm_email_notify'],
@@ -445,14 +447,14 @@ class admin_convert_board_smf_legacy extends ipsCommand
 				// URL
 				if (preg_match('/http/', $row['avatar']))
 				{
-					$profile['avatar_type'] = 'url';
-					$profile['avatar_location'] = $row['avatar'];
+					$profile['photo_type'] = 'url';
+					$profile['photo_location'] = $row['avatar'];
 				}
 				// Gallery
 				else
 				{
-					$profile['avatar_type'] = 'upload';
-					$profile['avatar_location'] = $row['avatar'];
+					$profile['photo_type'] = 'custom';
+					$profile['photo_location'] = $row['avatar'];
 					$path = $us['gal_path'];
 				}
 			}
@@ -462,8 +464,8 @@ class admin_convert_board_smf_legacy extends ipsCommand
 				$attach = ipsRegistry::DB('hb')->buildAndFetch(array(	'select' => '*', 'from' => $this->prefixFull . 'attachments', 'where' => 'ID_MEMBER='.$row['ID_MEMBER']));
 				if ($attach)
 				{
-					$profile['avatar_type'] = 'upload';
-					$profile['avatar_location'] = str_replace(' ', '_', $attach['filename']);
+					$profile['photo_type'] = 'custom';
+					$profile['photo_location'] = str_replace(' ', '_', $attach['filename']);
 					$path = $us['attach_path'];
 				}
 			}
@@ -1066,7 +1068,7 @@ class admin_convert_board_smf_legacy extends ipsCommand
 			ipsRegistry::DB('hb')->execute();
 			while ($to = ipsRegistry::DB('hb')->fetch())
 			{
-				if ($to['ID_MEMBER'] == $to['ID_MEMBER_FROM'])
+				if ($to['ID_MEMBER'] == $row['ID_MEMBER_FROM'])
 				{
 					continue;
 				}
@@ -1093,7 +1095,7 @@ class admin_convert_board_smf_legacy extends ipsCommand
 			}
 
 			// Need to add self to ID_MEMBER_FROM
-			if (!in_array($row['id_member_from'], array_keys($maps)))
+			if (!in_array($row['ID_MEMBER_FROM'], array_keys($maps)))
 			{
 				$maps[$row['ID_MEMBER_FROM']] = array(
 					'map_user_id'     => $row['ID_MEMBER_FROM'],
@@ -1121,7 +1123,7 @@ class admin_convert_board_smf_legacy extends ipsCommand
 				'mt_start_time'      => $row['msgtime'],
 				'mt_last_post_time'  => $row['msgtime'],
 				'mt_invited_members' => serialize( array_keys( $_invited ) ),
-				'mt_to_count'		 => count(  array_keys( $_invited ) ),
+				'mt_to_count'		 => count(  array_keys( $_invited ) ) + 1,
 				'mt_to_member_id'	 => $recipient,
 				'mt_replies'		 => 0,
 				'mt_is_draft'		 => 0,

@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * MyBB
- * Last Update: $Date: 2010-07-22 11:29:06 +0200(gio, 22 lug 2010) $
- * Last Updated By: $Author: terabyte $
+ * Last Update: $Date: 2011-07-12 21:15:48 +0100 (Tue, 12 Jul 2011) $
+ * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 447 $
+ * @version		$Revision: 550 $
  */
 
 $info = array( 'key'   => 'discuz',
@@ -392,14 +392,14 @@ class admin_convert_board_discuz extends ipsCommand
 				// URL
 				if (preg_match('/http/', $row['avatar']))
 				{
-					$profile['avatar_type'] = 'url';
-					$profile['avatar_location'] = $row['avatar'];
+					$profile['photo_type'] = 'url';
+					$profile['photo_location'] = $row['avatar'];
 				}
 				// Gallery
 				else
 				{
-					$profile['avatar_type'] = 'upload';
-					$profile['avatar_location'] = $row['avatar'];
+					$profile['photo_type'] = 'custom';
+					$profile['photo_location'] = $row['avatar'];
 					$path = $us['dirpath'];
 				}
 			}

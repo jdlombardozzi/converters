@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * vBulletin
- * Last Update: $Date: 2011-06-08 12:44:41 -0400 (Wed, 08 Jun 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2012-05-29 16:40:05 +0100 (Tue, 29 May 2012) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 529 $
+ * @version		$Revision: 638 $
  */
 
 
@@ -156,6 +156,7 @@
 				'moderators'	=> array('groups', 'members', 'forums'),
 				'topics'	=> array('forums'),
 				'topic_ratings' => array('topics', 'members'),
+				'tags'			=> array('topics', 'members'),
 				'posts'		=> array('topics', 'custom_bbcode', 'emoticons'),
 				'reputation_index' => array('members', 'posts'),
 				'polls'		=> array('topics', 'members', 'forums'),
@@ -245,6 +246,7 @@
 					break;
 
 				case 'topics':
+				case 'tags':
 					return $this->lib->countRows('thread');
 					break;
 
@@ -526,7 +528,7 @@
 				'homepage'		=> 'Website',
 				);
 
-			$this->lib->saveMoreInfo( 'members', array_merge( array_keys($pcpf), array( 'avvy_path', 'pp_path' ) ) );
+			$this->lib->saveMoreInfo( 'members', array_merge( array_keys($pcpf), array( /*'avvy_path',*/ 'pp_path', 'pp_type' ) ) );
 
 			//---------------------------
 			// Set up
@@ -561,8 +563,9 @@
 			$ask = array();
 
 			// We need to know the avatars path
-			$ask['avvy_path'] = array('type' => 'text', 'label' => 'The path to the folder where custom avatars are saved (no trailing slash - usually /path_to_vb/customavatars):');
-			$ask['pp_path'] = array('type' => 'text', 'label' => 'The path to the folder where custom profile pictures are saved (no trailing slash - usually /path_to_vb/customprofilepics):');
+			//$ask['avvy_path'] = array('type' => 'text', 'label' => 'The path to the folder where custom avatars are saved (no trailing slash - usually /path_to_vb/customavatars):');
+			$ask['pp_path'] = array('type' => 'text', 'label' => 'The path to the folder where your custom profile pictures/avatars are saved (no trailing slash - usually /path_to_vb/customprofilepics or /path_to_vb/customavatars):');
+			$ask['pp_type'] = array ( 'type' => 'dropdown', 'label' => 'The Member Photo type to convert?', 'options' => array ( 'avatar' => 'Avatars', 'profile' => 'Profile Pictures' ) );
 
 			// And those custom profile fields
 			$options = array('x' => '-Skip-');
@@ -729,50 +732,55 @@
 				//-----------------------------------------
 				// Avatars and profile pictures
 				//-----------------------------------------
-
-				$customavatar = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => '*', 'from' => 'customavatar', 'where' => "userid='{$row['userid']}'" ) );
-				if ($customavatar)
+				$profile['photo_type'] = 'custom';
+				if ( $us['pp_type'] == 'avatar' )
 				{
-					$profile['avatar_type'] = 'upload';
-					$profile['avatar_location'] = $customavatar['filename'];
-
-					if ($customavatar['filedata'])
+					$customavatar = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => '*', 'from' => 'customavatar', 'where' => "userid='{$row['userid']}'" ) );
+					if ($customavatar)
 					{
-						$profile['avatar_data'] = $customavatar['filedata'];
+						$profile['pp_main_photo'] = $customavatar['filename'];
+	
+						if ($customavatar['filedata'])
+						{
+							$profile['photo_data'] = $customavatar['filedata'];
+						}
+						else
+						{
+							$profile['pp_main_photo'] = "avatar{$customavatar['userid']}_{$row['avatarrevision']}.gif";
+						}
+						
+						$profile['pp_main_width'] = $customavatar['width'];
+						$profile['pp_main_height'] = $customavatar['height'];
+						$profile['photo_filesize'] = $customavatar['filesize'];
 					}
-					else
-					{
-						$profile['avatar_location'] = "avatar{$customavatar['userid']}_{$row['avatarrevision']}.gif";
-					}
-
-					$profile['avatar_size'] = $customavatar['width'].'x'.$customavatar['height'];
-					$profile['avatar_filesize'] = $customavatar['filesize'];
 				}
-
-				$customprofilepic = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => '*', 'from' => 'customprofilepic', 'where' => "userid='{$row['userid']}'" ) );
-				if ($customprofilepic)
+				else
 				{
-					$profile['pp_main_photo'] = $customprofilepic['filename'];
-
-					if ($customprofilepic['filedata'])
+					$customprofilepic = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => '*', 'from' => 'customprofilepic', 'where' => "userid='{$row['userid']}'" ) );
+					if ($customprofilepic)
 					{
-						$profile['photo_data'] = $customprofilepic['filedata'];
+						$profile['pp_main_photo'] = $customprofilepic['filename'];
+	
+						if ($customprofilepic['filedata'])
+						{
+							$profile['photo_data'] = $customprofilepic['filedata'];
+						}
+						else
+						{
+							$profile['pp_main_photo'] = "profilepic{$customprofilepic['userid']}_{$row['profilepicrevision']}.gif";
+						}
+	
+						$profile['pp_main_width'] = $customprofilepic['width'];
+						$profile['pp_main_height'] = $customprofilepic['height'];
+						$profile['photo_filesize'] = $customprofilepic['filesize'];
 					}
-					else
-					{
-						$profile['pp_main_photo'] = "profilepic{$customprofilepic['userid']}_{$row['profilepicrevision']}.gif";
-					}
-
-					$profile['pp_main_width'] = $customprofilepic['width'];
-					$profile['pp_main_height'] = $customprofilepic['height'];
-					$profile['photo_filesize'] = $customprofilepic['filesize'];
 				}
 
 				//-----------------------------------------
 				// Go
 				//-----------------------------------------
 
-				$this->lib->convertMember($info, $members, $profile, $custom, $us['avvy_path'], $us['pp_path']);
+				$this->lib->convertMember($info, $members, $profile, $custom, $us['pp_path']);
 
 			}
 
@@ -897,6 +905,46 @@
 		}
 
 
+		private function convert_tags()
+		{
+			//---------------------------
+			// Set up
+			//---------------------------
+
+			$main = array(	'select' 	=> '*',
+							'from' 		=> 'thread',
+							'order'		=> 'threadid ASC',
+						);
+
+			$loop = $this->lib->load('tags', $main, array());
+
+			//---------------------------
+			// Loop
+			//---------------------------
+
+			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
+			{
+				// Sort out this (ridiculously overly complicated) prefix system...
+				$prefix = ($row['prefixid']) ? ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => 'text', 'from' => 'phrase', 'where' => "varname='prefix_{$row['prefixid']}_title_plain'" ) ) : false;
+				
+				if ( $prefix )
+				{
+					$this->lib->convertTag(
+						$row['prefixid'],
+						array(
+							'tag_prefix'		=> 1,
+							'meta_id'			=> $row['threadid'],
+							'meta_parent_id'	=> $row['forumid'],
+							'tag'				=> $prefix['text']
+						)
+					);
+				}
+			}
+			
+			$this->lib->next();
+		}
+
+
 		/**
 		 * Convert Topics
 		 *
@@ -921,10 +969,8 @@
 			//---------------------------
 			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 			{
-				// Sort out this (ridiculously overly complicated) prefix system...
-				$prefix = ($row['prefixid']) ? ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => 'text', 'from' => 'phrase', 'where' => "varname='prefix_{$row['prefixid']}_title_plain'" ) ) : false;
 
-				$save = array( 'title'			  => ($prefix) ? $prefix['text'].' '.$row['title'] : $row['title'],
+				$save = array( 'title'			  => $row['title'],
 							   'state'			  => ($row['open'] == 1) ? 'open' : 'closed',
 							   'posts'			  => $row['replycount'],
 							   'starter_id'		  => $row['postuserid'],
@@ -935,7 +981,7 @@
 							   'poll_state'		  => ($row['pollid'] > 0) ? 1 : 0,
 							   'views'			  => $row['views'],
 							   'forum_id'		  => $row['forumid'],
-							   'approved'		  => ( $row['visible'] == 2 ) ? -1 : $row['visible'],
+							   'approved'		  => ( $row['visible'] == 2 ) ? 0 : 1,
 							   'pinned'			  => $row['sticky'],
 							   'topic_hasattach'  => $row['attach'] );
 
@@ -1057,8 +1103,9 @@
 							   'ip_address' 	=> $row['ipaddress'],
 							   'post_date'   	=> $row['dateline'],
 							   'post'		 	=> $this->fixPostData($row['pagetext']),
-							   'queued'      	=> $row['visible'] == 2 ? 2 : 0,
+							   'queued'      	=> $row['visible'] == 2 ? 1 : 0,
 							   'topic_id'    	=> $row['threadid'],
+							   'post_title'  	=> $row['title'],
 							   'rep_points'	=> $rep );
 
 				$this->lib->convertPost($row['postid'], $save);
@@ -1137,7 +1184,7 @@
 									'forum_id'		=> $topic['forumid'],
 									'member_choices'=> serialize(array(1 => $choice)) );
 
-					$this->lib->convertPollVoter($row['pollid'], $vsave);
+					$this->lib->convertPollVoter($voter['pollvoteid'], $vsave);
 				}
 
 				//-----------------------------------------
@@ -1151,14 +1198,14 @@
 
 				$save = array( 'tid'			  => $topic['threadid'],
 							   'start_date'		  => $row['dateline'],
-							   'choices'   		  => addslashes(serialize($poll_array)),
+							   'choices'   		  => serialize($poll_array),
 							   'starter_id'		  => $topic['postuserid'],
 							   'votes'     		  => $row['voters'],
 							   'forum_id'  		  => $topic['forumid'],
 							   'poll_question'	  => str_replace( "'" , '&#39;', $row['question'] ),
 							   'poll_view_voters' => $row['public'] );
 
-				$this->lib->convertPoll($row['pollid'], $save);
+				$this->lib->convertPoll($voter['pollvoteid'], $save);
 			}
 			$this->lib->next();
 		}
@@ -1337,6 +1384,12 @@
 			//-----------------------------------------
 
 			$this->lib->saveMoreInfo('attachments', array('attach_path'));
+			
+			$contenttype = ipsRegistry::DB ( 'hb' )->buildAndFetch ( array (
+						'select'	=> 'contenttypeid',
+						'from'		=> 'contenttype',
+						'where'		=> 'class = \'Post\''
+					) );
 
 			//---------------------------
 			// Set up
@@ -1345,6 +1398,7 @@
 			$main = array(	'select' 	=> '*',
 							'from' 		=> 'attachment',
 							'order'		=> 'attachmentid ASC',
+							'where'		=> 'contenttypeid = ' . $contenttype['contenttypeid']
 						);
 
 			$loop = $this->lib->load('attachments', $main);
@@ -1403,6 +1457,20 @@
 				{
 					$image = true;
 				}
+				
+				// Need to grab the topic ID
+				$topicid = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => 'threadid', 'from' => 'post', 'where' => "postid='" . intval( $row['contentid'] ) . "'" ) );
+				
+				if ( ! $topicid )
+				{
+					$this->lib->logError ( $row['attachmentid'], 'Orphaned Attachment - Post Missing' );
+					continue;
+				}
+				else
+				{
+					// Grab our real id
+					$ipbTopic	= $this->lib->getLink( $topicid['threadid'], 'topics', true );
+				}
 
 				$save = array(
 					'attach_ext'			=> $filedata['extension'],
@@ -1414,11 +1482,19 @@
 					'attach_filesize'		=> $filedata['filesize'],
 					'attach_rel_id'			=> $row['contentid'],
 					'attach_rel_module'		=> 'post',
+					'attach_parent_id'		=> $ipbTopic
 					);
 
 				//-----------------------------------------
 				// Database
 				//-----------------------------------------
+
+				if ( !$row['filedata'] && $path == '.' )
+				{
+					// Race issue... seen it a couple times, the file data is lost but the row still exists.
+					$this->lib->logError ( $row['attachmentid'], 'No File Data' );
+					continue;
+				}
 
 				if ($filedata['filedata'])
 				{
@@ -1434,10 +1510,10 @@
 
 				else
 				{
-					if ($path == '.')
+					/*if ($path == '.')
 					{
 						$this->lib->error('You entered "." for the path but you have some attachments in the file system');
-					}
+					}*/
 
 					$tmpPath = '/' . implode('/', preg_split('//', $filedata['userid'],  -1, PREG_SPLIT_NO_EMPTY));
 					$save['attach_location'] = "{$row['filedataid']}.attach";
@@ -2024,12 +2100,12 @@
 			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 			{
 				$save = array(
-					'comment_for_member_id'	=> $row['userid'],
-					'comment_by_member_id'	=> $row['postuserid'],
-					'comment_date'			=> $row['dateline'],
-					'comment_ip_address'	=> $row['ipaddress'],
-					'comment_content'		=> $row['pagetext'],
-					'comment_approved'		=> ($row['state'] == 'visible') ? 1 : 0,
+					'status_member_id'	=> $row['userid'],
+					'status_author_id'	=> $row['postuserid'],
+					'status_date'		=> $row['dateline'],
+					'status_author_ip'	=> $row['ipaddress'],
+					'status_content'	=> $row['pagetext'],
+					'status_approved'	=> ($row['state'] == 'visible') ? 1 : 0,
 					);
 				$this->lib->convertProfileComment($row['vmid'], $save);
 			}
@@ -2159,12 +2235,12 @@
 				//-----------------------------------------
 
 				$log = unserialize($row['log_data']);
-
+				
 				$save = array(
 					'wlog_mid'		=> $row['userid'],
 					'wlog_notes'	=> serialize(array('content' => $this->fixPostData($row['note']))),
 					'wlog_date'		=> $row['dateline'],
-					'wlog_type'		=> ($row['action'] == 1) ? 'neg' : 'pos',
+					'wlog_type'		=> ($row['action'] == 0) ? 'neg' : 'pos',
 					'wlog_addedby'	=> $row['whoadded']
 					);
 

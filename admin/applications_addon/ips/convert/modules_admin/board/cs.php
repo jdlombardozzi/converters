@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * MyBB
- * Last Update: $Date: 2009-11-25 16:43:59 +0100(mer, 25 nov 2009) $
- * Last Updated By: $Author: mark $
+ * Last Update: $Date: 2011-11-08 00:14:18 +0000 (Tue, 08 Nov 2011) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 391 $
+ * @version		$Revision: 593 $
  */
 
 $info = array( 'key'   => 'cs',
@@ -121,7 +121,7 @@ class admin_convert_board_cs extends ipsCommand
 				break;
 
 			case 'forums':
-				return $this->lib->countRows('cs_Sections') + $this->lib->countRows('cs_Groups');
+				return $this->lib->countRows('cs_Sections', 'ApplicationType=0') + $this->lib->countRows('cs_Groups');
 				break;
 
 			case 'moderators':
@@ -419,10 +419,10 @@ class admin_convert_board_cs extends ipsCommand
 			$avatar = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => 'Length, ContentType, Content', 'from' => 'cs_UserAvatar', 'where' => "UserId='{$row['UserID']}'" ) );
 			if ( $avatar != '' )
 			{
-				$profile['avatar_type'] = 'upload';
-				$profile['avatar_location'] = str_replace('/','.', strtolower($avatar['ContentType']));
-				$profile['avatar_data'] = $avatar['Content'];
-				$profile['avatar_filesize'] = $avatar['Length'];
+				$profile['photo_type'] = 'custom';
+				$profile['photo_location'] = str_replace('/','.', strtolower($avatar['ContentType']));
+				$profile['photo_data'] = $avatar['Content'];
+				$profile['photo_filesize'] = $avatar['Length'];
 			}
 
 			//-----------------------------------------
@@ -525,6 +525,7 @@ class admin_convert_board_cs extends ipsCommand
 		//---------------------------
 		$main = array( 'select' => 'GroupID, CAST(Name AS varchar) as Name, SortOrder',
 						'from'  => 'cs_Groups',
+  						'where' => 'ApplicationType = 0',
 						'order' => 'GroupID ASC' );
 
 		$loop = $this->lib->load('forums', $main, array('forum_tracker'), array(), TRUE );
@@ -552,6 +553,7 @@ class admin_convert_board_cs extends ipsCommand
 		//---------------------------
 		ipsRegistry::DB('hb')->build( array( 'select' => 'SectionID, IsActive, ParentID, GroupID, CAST(Name AS varchar) as Name, CAST(Description AS text) Description, TotalPosts, TotalThreads, SortOrder, ForumType, Url',
 											 'from'  => 'cs_Sections',
+        									 'where' => 'ApplicationType = 0',
 											 'order' => 'SectionID ASC' ) );
 		$forumRes = ipsRegistry::DB('hb')->execute();
 
@@ -566,7 +568,7 @@ class admin_convert_board_cs extends ipsCommand
 			//-----------------------------------------
 			// And go
 			//-----------------------------------------
-			$save = array( 'parent_id'		=> $row['ParentID'] == 0 ? 'C_'.$row['GroupID'] : $row['ParentID'],
+			$save = array( 'parent_id'		=> $row['ParentID'] == 0 ? 'C_' . $row['GroupID'] : $row['ParentID'],
 						   'position'		=> $row['SortOrder'],
 						   'name'			=> $row['Name'],
 						   'description' => $row['Description'],
@@ -607,10 +609,18 @@ class admin_convert_board_cs extends ipsCommand
 		//---------------------------
 		// Set up
 		//---------------------------
-		$main = array( 'select'		=> 'ThreadID, SectionID, UserID, PostAuthor, PostDate, ThreadDate, TotalViews, TotalReplies, MostRecentPostAuthorID, MostRecentPostAuthor, MostRecentPostID, IsLocked, IsSticky, IsApproved',
-					   'from'		=> 'cs_Threads',
-					   'where' => "SectionID > '0'",
-					   'order'		=> 'ThreadID ASC' );
+		$main = array( 'select'		=> 't.ThreadID, t.SectionID, t.UserID, t.PostAuthor, t.PostDate, t.ThreadDate, t.TotalViews, t.TotalReplies, t.MostRecentPostAuthorID, t.MostRecentPostAuthor, t.MostRecentPostID, t.IsLocked, t.IsSticky, t.IsApproved',
+					   'from'		=> array('cs_Threads' => 't'),
+					   'add_join'	=> array(
+					   		array(
+					   			'select'	=> 'f.ApplicationType, f.SectionID',
+					   			'from'		=> array('cs_Sections' => 'f'),
+					   			'where'		=> 'f.SectionID=t.SectionID',
+					   			'type'		=> 'left'
+					   		)
+					   ),
+					   'where' => "t.SectionID > '0' AND f.ApplicationType=0",
+					   'order'		=> 't.ThreadID ASC' );
 
 		$loop = $this->lib->load('topics', $main, array('tracker'));
 
@@ -622,7 +632,7 @@ class admin_convert_board_cs extends ipsCommand
 			$post = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => 'Subject,PostType', 'from' => 'cs_Posts', 'where' => "ThreadID='".$row['ThreadID']."' AND PostLevel='1'"));
 
 			$save = array( 'forum_id'			=> $row['SectionID'],
-						   'title'				=> $post['Subject'],
+						   'title'				=> IPSText::truncate( $post['Subject'], 250),
 						   'poll_state'			=> ( ($post['PostType'] == '2') && $row['IsApproved'] ) ? 'open' : '0',
 						   'starter_id'			=> $row['UserID'],
 						   'starter_name'		=> $row['PostAuthor'],
@@ -658,13 +668,34 @@ class admin_convert_board_cs extends ipsCommand
 	 **/
 	private function convert_posts()
 	{
+		$and = '';
+		
+		if ( intval( $this->request['count'] ) > 0 )
+		{
+			$and = ' AND';
+		}
+		
 		//---------------------------
 		// Set up
 		//---------------------------
-		$main = array( 'select'	 => 'PostID, ThreadID, PostAuthor, UserID, CAST(Subject AS varchar) as Subject, PostDate, IsApproved, CAST(Body AS TEXT) as Body, IPAddress, SectionID',
-					  'from'	 => 'cs_Posts',
-					 // 'where' => "SectionID > '0'",
-					  'order'	 => 'PostID ASC' );
+		$main = array( 'select'	 => 'p.PostID, p.ThreadID, p.PostAuthor, p.UserID, CAST(p.Subject AS varchar) as Subject, p.PostDate, p.IsApproved, CAST(p.Body AS TEXT) as Body, p.IPAddress, p.SectionID',
+					  'from'	 => array( 'cs_Posts' => 'p' ),
+					  'add_join'	=> array(
+					  		array(
+					  			'select'	=> 't.SectionID, t.ThreadID',
+					   			'from'		=> array('cs_Threads' => 't'),
+					   			'where'		=> 't.ThreadID=p.ThreadID',
+					   			'type'		=> 'left'
+					  		),
+					   		array(
+					   			'select'	=> 'f.ApplicationType, f.SectionID',
+					   			'from'		=> array('cs_Sections' => 'f'),
+					   			'where'		=> 'f.SectionID=t.SectionID',
+					   			'type'		=> 'left'
+					   		)
+					   ),
+					  'where' => "f.ApplicationType = 0{$and}",
+					  'order'	 => 'p.PostID ASC' );
 		$this->lib->useKey( 'PostID' );
 
 		$loop = $this->lib->load('posts', $main);
@@ -676,6 +707,7 @@ class admin_convert_board_cs extends ipsCommand
 		{
 			$this->lib->setLastKeyValue($row['PostID']);
 			$save = array( 'topic_id'    => intval($row['ThreadID']),
+						   'post_title'  	=> $row['Subject'],
 						   'author_id'	 => intval($row['UserID']),
 						   'author_name' => $row['PostAuthor'],
 						   'post_date'	 => $this->lib->myStrToTime($row['PostDate']),
@@ -729,7 +761,7 @@ class admin_convert_board_cs extends ipsCommand
 				$posts[] = array( 'msg_id'			   => $post['PostID'],
 							   'msg_topic_id'      => $post['ThreadID'],
 							   'msg_date'          => $this->lib->myStrToTime($post['PostDate']),
-							   'msg_post'          => $post['Body'],
+							   'msg_post'          => htmlspecialchars( $post['Body'] ),
 							   'msg_post_key'      => md5(microtime()),
 							   'msg_author_id'     => $post['UserID'],
 							   'msg_is_first_post' => $haveFirst == NULL ? 1 : 0 );
@@ -973,13 +1005,30 @@ class admin_convert_board_cs extends ipsCommand
 		//---------------------------
 		while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 		{
+			if ( $row['PostID'] )
+			{
+				$topic = ipsRegistry::DB('hb')->buildAndFetch(
+					array(
+						'select'	=> 'ThreadID',
+						'from'		=> 'cs_Posts',
+						'where'		=> 'PostID=' . $row['PostID']
+					)
+				);
+				
+				if ( $topic['ThreadID'] )
+				{
+					$ipbTopic = $this->lib->getLink( $topic['ThreadID'], 'topics' );
+				}
+			}
+			
 			// Sort out data
 			$save = array( 'attach_rel_id'	   => $row['PostID'],
 						   'attach_file'	   => $row['FileName'],
 						   'attach_hits'	   => $row['TotalViews'],
 						   'attach_date'	   => $this->lib->myStrToTime($row['PostDate']),
 						   'attach_member_id'  => $row['UserID'],
-						   'attach_rel_module' => 'post' );
+						   'attach_rel_module' => 'post',
+						   'attach_parent_id'  => $ipbTopic );
 
 			if ( strlen($row['Content']) != $row['ContentSize'] )
 			{

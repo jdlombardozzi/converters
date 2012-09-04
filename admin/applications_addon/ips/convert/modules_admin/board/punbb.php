@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * phpBB
- * Last Update: $Date: 2010-03-19 11:03:12 +0100(ven, 19 mar 2010) $
- * Last Updated By: $Author: terabyte $
+ * Last Update: $Date: 2011-11-08 00:14:18 +0000 (Tue, 08 Nov 2011) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 437 $
+ * @version		$Revision: 593 $
  */
 
 	$info = array(
@@ -431,8 +431,6 @@
 					'posts'				=> $row['num_posts'],
 					'time_offset'		=> $row['timezone'],
 					'dst_in_use'		=> $row['dst'],
-					'hide_email' 		=> ($row['email_setting'] == 2) ? 0 : 1,
-					'email_full'		=> $row['notify_with_post'],
 					'auto_track'		=> ($row['auto_notify'] == 1) ? 'immediate' : 0,
 					'view_sigs'			=> $row['show_sig'],
 					'view_img'			=> $row['show_img'],
@@ -462,9 +460,10 @@
 			
 					if ( file_exists($temp_path) && $imgSize = @getimagesize($temp_path) )
 					{
-						$profile['avatar_type']		= 'upload';
-						$profile['avatar_location']	= $row['id'].'.'.$cur_type;
-						$profile['avatar_size']		= $imgSize[0].'x'.$imgSize[1];
+						$profile['photo_type']		= 'custom';
+						$profile['photo_location']	= $row['id'].'.'.$cur_type;
+						$profile['pp_main_width']	= $imgSize[0];
+						$profile['pp_main_height']	= $imgSize[1];
 						$path = $us['pp_path'];
 						break;
 					}

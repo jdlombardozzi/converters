@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * PHP-Fusion
- * Last Update: $Date: 2010-03-19 11:03:12 +0100(ven, 19 mar 2010) $
- * Last Updated By: $Author: terabyte $
+ * Last Update: $Date: 2011-07-12 21:15:48 +0100 (Tue, 12 Jul 2011) $
+ * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 437 $
+ * @version		$Revision: 550 $
  */
 
 	$info = array(
@@ -277,15 +277,15 @@
 
 				if ($row['user_avatar'])
 				{
-					$profile['avatar_type'] = 'upload';
-					$profile['avatar_location'] = $row['user_avatar'];
+					$profile['photo_type'] = 'custom';
+					$profile['photo_location'] = $row['user_avatar'];
 				}
 
 				//-----------------------------------------
 				// And go!
 				//-----------------------------------------
 
-				$this->lib->convertMember($info, $members, $profile, array(), $us['pp_path'], '', FALSE);
+				$this->lib->convertMember($info, $members, $profile, array(), $us['pp_path'], FALSE);
 			}
 
 			$this->lib->next();
@@ -430,7 +430,8 @@
 					'ip_address'  => $row['post_ip'],
 					'post_date'   => $row['post_datestamp'],
 					'post'		  => $this->fixPostData($row['post_message']),
-					'topic_id'    => $row['thread_id']
+					'topic_id'    => $row['thread_id'],
+					'post_title'  => $row['post_subject'],
 					);
 
 				$this->lib->convertPost($row['post_id'], $save);

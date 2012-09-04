@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * MyBB
- * Last Update: $Date: 2011-03-03 18:00:52 -0500 (Thu, 03 Mar 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2011-09-12 17:04:01 +0100 (Mon, 12 Sep 2011) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 511 $
+ * @version		$Revision: 591 $
  */
 
 
@@ -351,7 +351,7 @@
 					'g_title'				=> $row['title'],
 					'g_access_offline'		=> $row['issupermod'],
 					'g_attach_max'			=> $attach_quota,
-					'g_avatar_upload'		=> $row['canuploadavatars'],
+					//'g_avatar_upload'		=> $row['canuploadavatars'],
 					'prefix'				=> $prefix,
 					'suffix'				=> $suffix,
 					'g_max_messages'		=> $row['pmquota'],
@@ -494,7 +494,6 @@
 					'warn_level'		=> $row['warningpoints'],
 					'last_post'			=> $row['lastpost'],
 					'view_sigs'			=> $row['showsigs'],
-					'view_avs'			=> $row['showavatars'],
 					'bday_day'			=> ($row['birthday']) ? $birthday[0] : '',
 					'bday_month'		=> ($row['birthday']) ? $birthday[1] : '',
 					'bday_year'			=> ($row['birthday']) ? $birthday[2] : '',
@@ -510,7 +509,6 @@
 				// Profile
 				$profile = array(
 					'pp_reputation_points'	=> $row['reputation'],
-					'notes'					=> $this->fixPostData($row['notepad']),
 					'signature'				=> $this->fixPostData($row['signature']),
 					);
 
@@ -522,24 +520,31 @@
 				// Uploaded
 				if ($row['avatartype'] == 'upload')
 				{
-					$profile['avatar_type'] = 'upload';
-					$profile['avatar_location'] = str_replace('./uploads/', '', $row['avatar']);
-					$profile['avatar_size'] = str_replace('|', 'x', $row['avatardimensions']);
+					$profile['photo_type'] = 'custom';
+					$profile['photo_location'] = str_replace('./uploads/', '', $row['avatar']);
+					$profile['photo_location'] = preg_replace ( "/\?dateline=([0-9]+)/si", '', $profile['avatar_location'] ); // MyBB drives me insane sometimes.
+					$imgSize = explode ( '|', $row['avatardimensions'] );
+					$profile['pp_main_width']	= $imgSize[0];
+					$profile['pp_main_height']	= $imgSize[1];
 					$path = $us['upload_path'];
 				}
 				// URL
 				elseif ($row['avatartype'] == 'remote')
 				{
-					$profile['avatar_type'] = 'url';
-					$profile['avatar_location'] = $row['avatar'];
-					$profile['avatar_size'] = str_replace('|', 'x', $row['avatardimensions']);
+					$profile['photo_type'] = 'url';
+					$profile['photo_location'] = $row['avatar'];
+					$imgSize = explode ( '|', $row['avatardimensions'] );
+					$profile['pp_main_width']	= $imgSize[0];
+					$profile['pp_main_height']	= $imgSize[1];
 				}
 				// Gallery
 				elseif ($row['avatartype'] == 'gallery')
 				{
-					$profile['avatar_type'] = 'upload';
-					$profile['avatar_location'] = str_replace('images/avatars/', '', $row['avatar']);
-					$profile['avatar_size'] = str_replace('|', 'x', $row['avatardimensions']);
+					$profile['photo_type'] = 'custom';
+					$profile['photo_location'] = str_replace('images/avatars/', '', $row['avatar']);
+					$imgSize = explode ( '|', $row['avatardimensions'] );
+					$profile['pp_main_width']	= $imgSize[0];
+					$profile['pp_main_height']	= $imgSize[1];
 					$path = $us['gal_path'];
 				}
 
@@ -786,6 +791,7 @@
 					'show_rules'		=> $show_rules,
 					'preview_posts'		=> $mod,
 					'inc_postcount'		=> $row['usepostcounts'],
+					'conv_parent'		=> $parent,
 					'parent_id'			=> $parent,
 					'redirect_url'		=> $row['linkto'],
 					'redirect_on'		=> ($row['linkto'] == '') ? 0 : 1,
@@ -805,7 +811,7 @@
 				ipsRegistry::DB('hb')->execute();
 				while ($tracker = ipsRegistry::DB('hb')->fetch())
 				{
-					$this->lib->convertForumSubscription($tracker['frid'], array('member_id' => $row['uid']));
+					$this->lib->convertForumSubscription($tracker['frid'], array('member_id' => $tracker['uid'], 'forum_id' => $tracker['fid'] ));
 				}
 
 
@@ -924,6 +930,7 @@
 
 				$save = array(
 					'topic_id'		=> $row['tid'],
+					'post_title'	=> $row['subject'],
 					'author_id'		=> $row['uid'],
 					'author_name'	=> $row['username'],
 					'post_date'		=> $row['dateline'],
@@ -1192,7 +1199,23 @@ if ( !$topic ) { continue; }
 				{
 					$image = true;
 				}
-
+				
+				$topic	= ipsRegistry::DB('hb')->buildAndFetch(
+					array(
+						'select'	=> 'tid',
+						'from'		=> 'posts',
+						'where'		=> 'pid=' . $row['pid']
+					)
+				);
+				
+				$ipbTopic = 0;
+				
+				// Now we have the foreign ID, grab our proper one
+				if ( $topic['tid'] )
+				{
+					$ipbTopic = $this->lib->getLink( $topic['tid'], 'topics' );
+				}
+				
 				// Sort out data
 				$save = array(
 					'attach_ext'			=> $extension,
@@ -1206,6 +1229,7 @@ if ( !$topic ) { continue; }
 					'attach_filesize'		=> $row['filesize'],
 					'attach_rel_id'			=> $row['pid'],
 					'attach_rel_module'		=> 'post',
+					'attach_parent_id'		=> $ipbTopic,
 					);
 
 				// Send em on
