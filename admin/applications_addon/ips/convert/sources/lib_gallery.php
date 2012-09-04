@@ -3,14 +3,14 @@
  * IPS Converters
  * Application Files
  * Library functions for IP.Gallery 3.0 conversions
- * Last Update: $Date: 2011-06-08 17:23:21 -0400 (Wed, 08 Jun 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2011-11-08 00:14:18 +0000 (Tue, 08 Nov 2011) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 530 $
+ * @version		$Revision: 593 $
  */
 class lib_gallery extends lib_master
 {
@@ -25,9 +25,9 @@ class lib_gallery extends lib_master
 		return "<a href='{$this->settings['base_url']}&app=gallery&module=albums&section=manage&do=overview' target='_blank'>Click here</a> and confirm each albums Permissions and Settings are correct, then run the following Tools in the order specified.<br /><br />
 		
 		<ol>
+			<li>Rebuild Node Tree</li>
 			<li>Recount & Resync Albums</li>
 			<li>Rebuild Images</li>
-			<li>Rebuild Node Tree</li>
 		</ol><br />
 		
 		After that, <a href='{$this->settings['base_url']}&app=gallery&module=overview&section=settings' target='_blank'>click here</a> and turn the application back on.";
@@ -170,6 +170,7 @@ class lib_gallery extends lib_master
 				break;
 
 			case 'gallery_albums':
+			case 'gallery_categories':
 				return array( 'gallery_albums_main' => 'album_id' );
 				break;
 
@@ -194,7 +195,7 @@ class lib_gallery extends lib_master
 				break;*/
 
 			default:
-				$this->error('There is a problem with the converter: bad truncate command');
+				$this->error('There is a problem with the converter: bad truncate command ' . $action );
 				break;
 		}
 	}
@@ -413,16 +414,22 @@ class lib_gallery extends lib_master
 
 		if ( isset($info['directory']) && $info['directory'] != '' )
 		{
-			$path = $path . '/' . trim($info['directory'], '/');
+			$oldPath	= $path;
+			$path		= $path . '/' . trim($info['directory'], '/');
 		}
-
+		
 		// Check the file actually exists
 		if (!$db && !file_exists($path.'/'.$info['masked_file_name']))
 		{
-			$this->logError($id, 'Could not locate file '.$path.'/'.$info['masked_file_name']);
-			return false;
+			if ( ! file_exists( $oldPath . '/' . $info['masked_file_name'] ) )
+			{
+				$this->logError($id, 'Could not locate file '.$path.'/'.$info['masked_file_name']);
+				return false;
+			}
+			
+			$path = $oldPath;
 		}
-
+		
 		//-----------------------------------------
 		// Set up array
 		//-----------------------------------------
@@ -476,7 +483,7 @@ class lib_gallery extends lib_master
 		
 		$ext = $upload->_getFileExtension( $info['file_name'] );
 
-		$new_name = "gallery_{$info['member_id']}_" . $info['img_album_id'] . "_" . time()%$imageArray['file_size'] . '.' . $ext;
+		$new_name = "gallery_{$info['member_id']}_" . $info['img_album_id'] . "_" . time() . '_' . $id . '.' . $ext;
 		$imageArray['masked_file_name'] = $new_name;
 		$new_file = $this->settings['gallery_images_path'] . '/' . $dir . '/' . $new_name;
 

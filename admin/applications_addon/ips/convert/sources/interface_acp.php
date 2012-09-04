@@ -3,14 +3,14 @@
  * IPS Converters
  * Application Files
  * ACP Interface
- * Last Update: $Date: 2010-03-19 11:03:12 +0100(ven, 19 mar 2010) $
- * Last Updated By: $Author: terabyte $
+ * Last Update: $Date: 2011-07-15 19:03:18 +0100 (Fri, 15 Jul 2011) $
+ * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 437 $
+ * @version		$Revision: 553 $
  */
 
 	abstract class _interface
@@ -113,12 +113,13 @@
 		{
 			if(is_array($next))
 			{
-				$this->registry->output->redirect("{$this->settings['base_url']}app=convert&module={$this->app['sw']}&section={$this->app['app_key']}&do={$next[0]}&st=0&cycle={$this->request['cycle']}&total=".$this->countRows($next[1]), "Continuing..." );
+				$this->registry->output->html .= $this->registry->output->global_template->temporaryRedirect("{$this->settings['base_url']}app=convert&module={$this->app['sw']}&section={$this->app['app_key']}&do={$next[0]}&st=0&cycle={$this->request['cycle']}&total=".$this->countRows($next[1]), "Continuing..." );
 			}
 			else
 			{
-				$this->registry->output->redirect("{$this->settings['base_url']}app=convert&module={$this->app['sw']}&section={$this->app['app_key']}&do={$next}&st=0&cycle={$this->request['cycle']}&total=".$this->countRows($next), "Continuing..." );
+				$this->registry->output->html .= $this->registry->output->global_template->temporaryRedirect("{$this->settings['base_url']}app=convert&module={$this->app['sw']}&section={$this->app['app_key']}&do={$next}&st=0&cycle={$this->request['cycle']}&total=".$this->countRows($next), "Continuing..." );
 			}
+			$this->sendOutput ( );
 		}
 
 		/**
@@ -161,7 +162,8 @@
 			$message = ($pc > 100) ? 'Finishing...' : "{$pc}% complete";
 			IPSLib::updateSettings(array('conv_error' => serialize($this->errors)));
 			$end = ($this->end > $total) ? $total : $this->end;
-			$this->registry->output->redirect("{$this->settings['base_url']}app=convert&module={$this->app['sw']}&section={$this->app['app_key']}&do={$this->request['do']}&st={$this->end}&cycle={$this->request['cycle']}&total={$total}", "{$end} of {$total} converted<br />{$message}" );
+			$this->registry->output->html .= $this->registry->output->global_template->temporaryRedirect("{$this->settings['base_url']}app=convert&module={$this->app['sw']}&section={$this->app['app_key']}&do={$this->request['do']}&st={$this->end}&cycle={$this->request['cycle']}&total={$total}", "<strong>{$end} of {$total} converted</strong><br />{$message}<br /><br /><strong><a href='{$this->settings['base_url']}app=convert&module={$this->app['sw']}&section={$this->app['app_key']}&do={$this->request['do']}&st={$this->end}&cycle={$this->request['cycle']}&total={$total}'>Click here if you are not redirected.</a></strong>" );
+			$this->sendOutput ( );
 		}
 
 		/**
@@ -172,7 +174,8 @@
 		 **/
 		public function reload()
 		{
-			$this->registry->output->redirect("{$this->settings['base_url']}app=convert&module={$this->app['sw']}&section={$this->app['app_key']}&do={$this->request['do']}&st={$this->start}&cycle={$this->request['cycle']}&total={$this->request['total']}", "Loading..." );
+			$this->registry->output->html .= $this->registry->output->global_template->temporaryRedirect("{$this->settings['base_url']}app=convert&module={$this->app['sw']}&section={$this->app['app_key']}&do={$this->request['do']}&st={$this->start}&cycle={$this->request['cycle']}&total={$this->request['total']}", "Loading..." );
+			$this->sendOutput ( );
 		}
 
 		/**

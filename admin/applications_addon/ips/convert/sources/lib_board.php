@@ -3,14 +3,14 @@
  * IPS Converters
  * Application Files
  * Library functions for IP.Board 3.0 conversions
- * Last Update: $Date: 2011-05-11 11:44:04 -0400 (Wed, 11 May 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2012-03-20 16:52:44 +0000 (Tue, 20 Mar 2012) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 525 $
+ * @version		$Revision: 629 $
  */
 
 	class lib_board extends lib_master
@@ -69,6 +69,15 @@
 					$count = $this->DB->buildAndFetch( array( 'select' => 'COUNT(*) as count', 'from' => 'dnames_change' ) );
 					$return = array(
 						'name'	=> 'Display Name History',
+						'rows'	=> $count['count'],
+						'cycle'	=> 2000,
+					);
+					break;
+					
+				case 'tags':
+					$count = $this->DB->buildAndFetch( array( 'select' => 'COUNT(*) as count', 'from' => 'core_tags' ) );
+					$return = array(
+						'name'	=> 'Tags',
 						'rows'	=> $count['count'],
 						'cycle'	=> 2000,
 					);
@@ -229,13 +238,22 @@
 					break;
 
 				case 'profile_comments':
-					$count = $this->DB->buildAndFetch( array( 'select' => 'COUNT(*) as count', 'from' => 'profile_comments' ) );
+					$count = $this->DB->buildAndFetch( array( 'select' => 'COUNT(*) as count', 'from' => 'member_status_updates' ) );
 					$return = array(
-						'name'	=> 'Profile Comments',
+						'name'	=> 'Profile Comments and Status Updates',
 						'rows'	=> $count['count'],
 						'cycle'	=> 2000,
 					);
 					break;
+					
+				case 'profile_comment_replies':
+					$count = $this->DB->buildAndFetch ( array ( 'select' => 'COUNT(*) as count', 'from' => 'member_status_replies' ) );
+					$return = array (
+						'name'	=> 'Profile Comment/Status Replies',
+						'rows'	=> $count['count'],
+						'cycle'	=> 2000,
+					);
+				break;
 
 				case 'profile_friends':
 					$count = $this->DB->buildAndFetch( array( 'select' => 'COUNT(*) as count', 'from' => 'profile_friends' ) );
@@ -344,6 +362,10 @@
 		{
 			switch ($action)
 			{
+				case 'tags':
+					return array();
+					break;
+				
 				case 'members':
 					return array( 'members' => 'member_id', 'pfields_content' => 'member_id', 'profile_portal' => 'pp_member_id', 'rc_modpref' => 'mem_id' );
 					break;
@@ -364,10 +386,6 @@
 					return array( 'forums' => 'id', 'permission_index' => 'perm_id' );
 					break;
 
-				case 'forum_tracker':
-					return array( 'forum_tracker' => 'frid' );
-					break;
-
 				case 'moderators':
 					return array( 'moderators' => 'mid' );
 					break;
@@ -385,11 +403,7 @@
 					break;
 
 				case 'topics':
-					return array( 'topics' => 'tid' );
-					break;
-
-				case 'tracker':
-					return array( 'tracker' => 'trid' );
+					return array( 'topics' => 'tid', 'core_like' => 'like_rel_id', 'core_like_cache' => 'like_cache_rel_id' );
 					break;
 
 				case 'posts':
@@ -465,8 +479,12 @@
 					break;
 
 				case 'profile_comments':
-					return array( 'profile_comments' => 'comment_id' );
+					return array( 'member_status_updates' => 'status_id' );
 					break;
+				
+				case 'profile_comment_replies':
+					return array ( 'member_status_replies' => 'reply_id' );
+				break;
 
 				case 'profile_friends':
 					return array( 'profile_friends' => 'friends_id' );
@@ -507,6 +525,11 @@
 				case 'warn_logs':
 					return array( 'warn_logs' => 'wlog_id' );
 					break;
+				
+				case 'forum_tracker':
+				case 'tracker':
+					return array();
+				break;
 
 				default:
 					$this->error('There is a problem with the converter: bad truncate command ('.$action.')');
@@ -629,7 +652,7 @@
 			// We need to sort out the parent id
 			if ($info['parent_id'] != -1)
 			{
-				$parent = $this->getLink($info['parent_id'], 'forums');
+				$parent = $this->getLink($info['parent_id'], 'forums', true);
 				if ($parent)
 				{
 					$info['parent_id'] = $parent;
@@ -658,6 +681,12 @@
 			// MSSQL makes me want to cry...
 			$info['min_posts_view'] = $info['min_posts_view'] ? $info['min_posts_view'] : 0;
 			$info['min_posts_post'] = $info['min_posts_post'] ? $info['min_posts_post'] : 0;
+			
+			// Post count increment
+			$info['inc_postcount']	= isset($info['inc_postcount']) ? $info['inc_postcount'] : 1;
+			
+			// Legacy 3.1 column. Just in case I miss removing them from somewhere.
+			unset ( $info['status'] );
 
 			// And do it!
 			unset($info['id']);
@@ -949,9 +978,10 @@
 		 * @access	public
 		 * @param 	integer		Foreign ID number
 		 * @param 	array 		Data to insert to table
+		 * @param	boolean		Load member IDs from parent app
 		 * @return 	boolean		Success or fail
 		 **/
-		public function convertTopic($id, $info)
+		public function convertTopic($id, $info, $parent=false)
 		{
 			//-----------------------------------------
 			// We don't bother with shadow topics
@@ -991,8 +1021,8 @@
 			// Link
 			//-----------------------------------------
 
-			$info['starter_id'] = ($info['starter_id']) ? $this->getLink($info['starter_id'], 'members') : 0;
-			$info['last_poster_id'] = ($info['last_poster_id']) ? $this->getLink($info['last_poster_id'], 'members') : 0;
+			$info['starter_id'] = ($info['starter_id']) ? $this->getLink($info['starter_id'], 'members', false, $parent) : 0;
+			$info['last_poster_id'] = ($info['last_poster_id']) ? $this->getLink($info['last_poster_id'], 'members', false, $parent) : 0;
 			$info['forum_id'] = $this->getLink($info['forum_id'], 'forums');
 
 			//-----------------------------------------
@@ -1008,7 +1038,8 @@
 			// Insert
 			//-----------------------------------------
 
-			$info['approved'] = isset($info['approved']) ? $info['approved'] : 1;
+			$info['approved']	= isset($info['approved']) ? $info['approved'] : 1;
+			$info['pinned']		= isset($info['pinned']) ? $info['pinned'] : 0;
 
 			// Fix integers since STRICT likes to complain...
 			$info['starter_id']		= intval($info['starter_id']);
@@ -1033,9 +1064,10 @@
 		 * @access	public
 		 * @param 	integer		Foreign ID number
 		 * @param 	array 		Data to insert to table
+		 * @param	boolean		Load member IDs from parent app
 		 * @return 	boolean		Success or fail
 		 **/
-		public function convertPost($id, $info)
+		public function convertPost($id, $info, $parent=false)
 		{
 			//-----------------------------------------
 			// Make sure we have everything we need
@@ -1069,13 +1101,14 @@
 			// Insert
 			//-----------------------------------------
 
-			$info['author_id'] = ($info['author_id']) ? $this->getLink($info['author_id'], 'members') : 0;
+			$info['author_id'] = ($info['author_id']) ? $this->getLink($info['author_id'], 'members', false, $parent) : 0;
 			$info['topic_id'] = $this->getLink($info['topic_id'], 'topics');
 
 			// Fix integers since STRICT likes to complain...
 			$info['author_id'] = intval($info['author_id']);
 
 			unset($info['icon_id']);
+			unset($info['post_title']);
 
 			if (!$info['topic_id'])
 			{
@@ -1128,9 +1161,10 @@
 		 * @access	public
 		 * @param 	integer		Foreign ID number
 		 * @param 	array 		Data to insert to table
+		 * @param	boolean		Load member IDs from parent app
 		 * @return 	boolean		Success or fail
 		 **/
-		public function convertPoll($id, $info)
+		public function convertPoll($id, $info, $parent=false)
 		{
 			//-----------------------------------------
 			// Make sure we have everything we need
@@ -1169,7 +1203,7 @@
 			//-----------------------------------------
 
 			$info['tid'] = $this->getLink($info['tid'], 'topics');
-			$info['starter_id'] = ($info['starter_id']) ? $this->getLink($info['starter_id'], 'members') : 0;
+			$info['starter_id'] = ($info['starter_id']) ? $this->getLink($info['starter_id'], 'members', false, $parent) : 0;
 			$info['forum_id'] = $this->getLink($info['forum_id'], 'forums');
 
 			unset($info['pid']);
@@ -1191,9 +1225,10 @@
 		 * @access	public
 		 * @param 	integer		Foreign ID number
 		 * @param 	array 		Data to insert to table
+		 * @param	boolean		Load member IDs from parent app
 		 * @return 	boolean		Success or fail
 		 **/
-		public function convertPollVoter($id, $info)
+		public function convertPollVoter($id, $info, $parent=false)
 		{
 			//-----------------------------------------
 			// Make sure we have everything we need
@@ -1225,7 +1260,7 @@
 			//-----------------------------------------
 
 			$info['tid'] = $this->getLink($info['tid'], 'topics');
-			$info['member_id'] = $this->getLink($info['member_id'], 'members');
+			$info['member_id'] = $this->getLink($info['member_id'], 'members', false, $parent);
 			$info['forum_id'] = $this->getLink($info['forum_id'], 'forums');
 
 			if (!$info['tid'])
@@ -1299,7 +1334,7 @@
 			//-----------------------------------------
 			// Insert topic
 			//-----------------------------------------
-
+			$oldMemberID			= $topic['mt_to_member_id'] ? $topic['mt_to_member_id'] : 'NULL';
 			$topic['mt_starter_id'] = ($topic['mt_starter_id']) ? $this->getLink($topic['mt_starter_id'], 'members') : 0;
 			$topic['mt_to_member_id'] = ($topic['mt_to_member_id']) ? $this->getLink($topic['mt_to_member_id'], 'members') : 0;
 
@@ -1311,13 +1346,7 @@
 
 			if (!$topic['mt_to_member_id'])
 			{
-				$this->logError($topic['mt_id'], 'Recipient not found.');
-				return false;
-			}
-			
-			if ($topic['mt_to_member_id'] == $topic['mt_starter_id'])
-			{
-				$this->logError($topic['mt_id'], 'Recipient cannot be the same as the sender.');
+				$this->logError($topic['mt_id'], 'Recipient (' . $oldMemberID . ') not found.');
 				return false;
 			}
 
@@ -1419,6 +1448,7 @@
 
 				$map['map_user_id'] = $this->getLink($map['map_user_id'], 'members');
 				$map['map_topic_id'] = $this->getLink($map['map_topic_id'], 'pms');
+				
 
 				if (!$map['map_user_id'])
 				{
@@ -1430,7 +1460,20 @@
 					$this->logError($map['map_id'], '(PM MAP) No topic ID link could be found');
 					continue;
 				}
-
+				
+				// Check if map already exists.
+				$existingMap = $this->DB->buildAndFetch ( array (
+					'select'	=> '*',
+					'from'		=> 'message_topic_user_map',
+					'where'		=> 'map_user_id = ' . $map['map_user_id'] . ' AND  map_topic_id = ' . $map['map_topic_id']
+				) );
+				
+				if ( $existingMap )
+				{
+					$this->logError ( $existingMap['map_id'], '(PM MAP) PM Map Already Exists.' );
+					continue;
+				}
+				
 				unset($map['map_id']);
 				$this->DB->insert( 'message_topic_user_map', $map );
 				$inserted_id = $this->DB->getInsertId();
@@ -1794,13 +1837,8 @@
 			{
 				$info['ban_date'] = time();
 			}
-
-			//-----------------------------------------
-			// Insert
-			//-----------------------------------------
-
-			$info['ban_nocache'] = '0';
-
+			
+			unset($info['ban_nocache']);
 			unset($info['ban_id']);
 			$this->DB->insert( 'banfilters', $info );
 			$inserted_id = $this->DB->getInsertId();
@@ -1871,39 +1909,20 @@
 			//-----------------------------------------
 			// Make sure we have everything we need
 			//-----------------------------------------
-
-			if (!$id)
-			{
-				$this->logError($id, 'No Forum Subscription ID number provided');
-				return false;
-			}
-			if (!$info['member_id'])
-			{
-				$this->logError($id, 'No member ID provided');
-				return false;
-			}
-			if (!$info['forum_id'])
+			$link = $this->getLink( $info['forum_id'], 'forums', true );
+			
+			if ( ! $link )
 			{
 				$this->logError($id, 'No forum ID provided');
 				return false;
 			}
-
-			//-----------------------------------------
-			// Insert
-			//-----------------------------------------
-
-			$info['member_id'] = $this->getLink($info['member_id'], 'members');
-			$info['forum_id'] = $this->getLink($info['forum_id'], 'forums');
-
-			unset($info['frid']);
-			#$this->DB->insert( 'forum_tracker', $info );
-			#$inserted_id = $this->DB->getInsertId();
-
-			//-----------------------------------------
-			// Add link
-			//-----------------------------------------
-
-			#$this->addLink($inserted_id, $id, 'forum_tracker');
+			
+			$this->convertFollow ( array (
+				'like_app'			=> 'forums',
+				'like_area'			=> 'forums',
+				'like_rel_id'		=> $link,
+				'like_member_id'	=> $this->getLink( $info['member_id'], 'members', true ),
+			) );
 
 			return true;
 		}
@@ -1921,8 +1940,22 @@
 			//-----------------------------------------
 			// Make sure we have everything we need
 			//-----------------------------------------
+			$link = $this->getLink( $info['topic_id'], 'topics', true );
+			
+			if ( ! $link )
+			{
+				$this->logError($id, 'No topic ID provided');
+				return false;
+			}
+			
+			$this->convertFollow ( array (
+				'like_app'			=> 'forums',
+				'like_area'			=> 'topics',
+				'like_rel_id'		=> $this->getLink( $info['topic_id'], 'topics' ),
+				'like_member_id'	=> $this->getLink( $info['member_id'], 'members', true ),
+			) );
 
-			if (!$id)
+			/*if (!$id)
 			{
 				$this->logError($id, 'No ID number provided');
 				return false;
@@ -1965,7 +1998,7 @@
 			// Add link
 			//-----------------------------------------
 
-			$this->addLink($inserted_id, $id, 'tracker');
+			$this->addLink($inserted_id, $id, 'tracker');*/
 
 			return true;
 		}
@@ -2192,17 +2225,17 @@
 				$this->logError($id, 'No ID number provided');
 				return false;
 			}
-			if (!$info['comment_for_member_id'])
+			if (!$info['status_member_id'])
 			{
 				$this->logError($id, 'No member ID provided');
 				return false;
 			}
-			if (!$info['comment_by_member_id'])
+			if (!$info['status_author_id'])
 			{
 				$this->logError($id, 'No author ID provided');
 				return false;
 			}
-			if (!$info['comment_content'])
+			if (!$info['status_content'])
 			{
 				$this->logError($id, 'No comment provided');
 				return false;
@@ -2212,11 +2245,11 @@
 			// Insert
 			//-----------------------------------------
 
-			$info['comment_for_member_id'] = $this->getLink($info['comment_for_member_id'], 'members');
-			$info['comment_by_member_id'] = $this->getLink($info['comment_by_member_id'], 'members');
+			$info['status_member_id'] = $this->getLink($info['status_member_id'], 'members');
+			$info['status_author_id'] = $this->getLink($info['status_author_id'], 'members');
 
-			unset($info['comment_id']);
-			$this->DB->insert( 'profile_comments', $info );
+			unset($info['status_id']);
+			$this->DB->insert( 'member_status_updates', $info );
 			$inserted_id = $this->DB->getInsertId();
 
 			//-----------------------------------------
@@ -2227,6 +2260,57 @@
 
 			return true;
 		}
+		
+		/**
+		 * Convert profile comment replies
+		 *
+		 * @access	public
+		 * @param 	integer		Foreign ID number
+		 * @param 	array 		Data to insert to table
+		 * @return 	boolean		Success or fail
+		 **/
+		public function convertProfileCommentReply ( $id, $info )
+		{
+			if ( !$id )
+			{
+				$this->logError ( $id, 'No Reply ID provided.' );
+				return false;
+			}
+			
+			if ( !$info['reply_status_id'] )
+			{
+				$this->logError ( $id, 'No Comment/Status ID Provided.' );
+				return false;
+			}
+			
+			if ( !$info['reply_member_id'] )
+			{
+				$this->logError ( $id, 'No Reply Member ID provided.' );
+				return false;
+			}
+			
+			if ( !$info['reply_content'] )
+			{
+				$this->logError ( $id, 'No Reply Content provided.' );
+				return false;
+			}
+			
+			// Yay links!
+			$info['reply_status_id']	= $this->getLink ( $info['reply_status_id'], 'profile_comments' );
+			$info['reply_member_id']	= $this->getLink ( $info['reply_member_id'], 'members' );
+			
+			// ... aaaaaaand insert.
+			unset ( $info['reply_id'] );
+			$this->DB->insert ( 'member_status_replies', $info );
+			$inserted_id = $this->DB->getInsertId ( );
+			
+			// Add our link.
+			$this->addLink ( $inserted_id, $id, 'profile_comment_replies' );
+			
+			// And we're done!
+			return true;
+		}
+
 
 		/**
 		 * Convert friends
@@ -2956,6 +3040,34 @@
 			//-----------------------------------------
 
 			$this->addLink($inserted_id, $id, 'warn_logs');
+			
+			$member = $this->DB->buildAndFetch(
+				array(
+					'select'	=> 'member_id, warn_level',
+					'from'		=> 'members',
+					'where'		=> 'member_id=' . $info['wlog_mid']
+				)
+			);
+			
+			// Update members information
+			if ( $info['wlog_type'] == 'pos' )
+			{
+				$this->DB->update( 'members',
+					array(
+						'warn_level' => ( $member['warn_level'] - 1 ) > 0 ? $member['warn_level'] - 1 : 0
+					),
+					'member_id=' . $member['member_id']
+				);
+			}
+			else
+			{
+				$this->DB->update( 'members',
+					array(
+						'warn_level' => $member['warn_level'] + 1
+					),
+					'member_id=' . $member['member_id']
+				);
+			}
 
 			return true;
 		}

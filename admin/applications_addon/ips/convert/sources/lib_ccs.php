@@ -40,32 +40,50 @@
 		{
 			switch ($action)
 			{
-                case 'custom_bbcode':
-            					$count = $this->DB->buildAndFetch( array( 'select' => 'COUNT(*) as count', 'from' => 'custom_bbcode' ) );
-            					$return = array(
-            						'name'	=> 'Custom BBCode',
-            						'rows'	=> $count['count'],
-            						'cycle'	=> 50,
-            					);
-            					break;
+        case 'custom_bbcode':
+    					$count = $this->DB->buildAndFetch( array( 'select' => 'COUNT(*) as count', 'from' => 'custom_bbcode' ) );
+    					$return = array(
+    						'name'	=> 'Custom BBCode',
+    						'rows'	=> $count['count'],
+    						'cycle'	=> 50,
+    					);
+    					break;
 
-                case 'members':
-            					$count = $this->DB->buildAndFetch( array( 'select' => 'COUNT(*) as count', 'from' => 'members' ) );
-            					$return = array(
-            						'name'	=> 'Members',
-            						'rows'	=> $count['count'],
-            						'cycle'	=> 250,
-            					);
-            					break;
+        case 'emoticons':
+    					$count = $this->DB->buildAndFetch( array( 'select' => 'COUNT(*) as count', 'from' => 'emoticons' ) );
+    					$return = array(
+    						'name'	=> 'Emoticons',
+    						'rows'	=> $count['count'],
+    						'cycle'	=> 100,
+    					);
+    					break;
 
-                case 'emoticons':
-            					$count = $this->DB->buildAndFetch( array( 'select' => 'COUNT(*) as count', 'from' => 'emoticons' ) );
-            					$return = array(
-            						'name'	=> 'Emoticons',
-            						'rows'	=> $count['count'],
-            						'cycle'	=> 100,
-            					);
-            					break;
+        case 'groups':
+    					$count = $this->DB->buildAndFetch( array( 'select' => 'COUNT(*) as count', 'from' => 'groups' ) );
+    					$return = array(
+    						'name'	=> 'Member Groups',
+    						'rows'	=> $count['count'],
+    						'cycle'	=> 100,
+    					);
+    					break;
+
+        case 'forum_perms':
+    					$count = $this->DB->buildAndFetch( array( 'select' => 'COUNT(*) as count', 'from' => 'forum_perms' ) );
+    					$return = array(
+    						'name'	=> 'Permission Sets',
+    						'rows'	=> $count['count'],
+    						'cycle'	=> 100,
+    					);
+    					break;
+
+				case 'members':
+					$count = $this->DB->buildAndFetch( array( 'select' => 'COUNT(*) as count', 'from' => 'members' ) );
+					$return = array(
+						'name'	=> 'Members',
+						'rows'	=> $count['count'],
+						'cycle'	=> 250,
+					);
+					break;
 
 				case 'ccs_containers':
 					$count = $this->DB->buildAndFetch( array( 'select' => 'COUNT(*) as count', 'from' => 'ccs_containers' ) );
@@ -215,12 +233,25 @@
 		{
 			switch ($action)
 			{
-                case 'custom_bbcode':
-            					return array( 'custom_bbcode' => 'bbcode_id' );
-            					break;
-                case 'emoticons':
-            					return array( 'emoticons' => 'id' );
-            					break;
+        case 'custom_bbcode':
+    					return array( 'custom_bbcode' => 'bbcode_id' );
+    					break;
+        case 'emoticons':
+    					return array( 'emoticons' => 'id' );
+    					break;
+
+				case 'members':
+					return array( 'members' => 'member_id', 'pfields_content' => 'member_id', 'profile_portal' => 'pp_member_id', 'rc_modpref' => 'mem_id' );
+					break;
+
+				case 'groups':
+					return array( 'groups' => 'g_id' );
+					break;
+
+				case 'forum_perms':
+					return array( 'forum_perms' => 'perm_id' );
+					break;
+					
 				case 'ccs_attachments':
 					return array( 'attachments' => 'attach_id' );
 					break;
@@ -263,10 +294,6 @@
 					return array( 'attachments' => 'attach_id' );
 					break;
 
-                case 'members':
-            					return array( 'members' => 'member_id', 'pfields_content' => 'member_id', 'profile_portal' => 'pp_member_id', 'rc_modpref' => 'mem_id' );
-            					break;
-
 				default:
 					$this->error('There is a problem with the converter: bad truncate command');
 					break;
@@ -285,11 +312,15 @@
 			switch ($action)
 			{
 				case 'ccs_database_categories':
-					return array('addfield' => array('ccs_database_categories', 'conv_parent', 'varchar(100)'));
+					return array('addfield' => array('ccs_database_categories', 'conv_parent', 'varchar(5)'));
 					break;
 
 				case 'ccs_folders':
 					return array('addfield' => array('ccs_folders', 'link_id', 'mediumint(10)'));
+					break;
+					
+				case 'members':
+					return array('addfield' => array('members', 'conv_password', 'varchar(128)'));
 					break;
 
 				default:
@@ -311,93 +342,93 @@
 			return $report;
 		}
 
-        /**
-      		 * Convert an emoticon
-      		 *
-      		 * @access	public
-      		 * @param 	integer		Foreign ID number
-      		 * @param 	array 		Data to insert to table
-      		 * @param 	string 		How to handle duplicates ('local' or 'remote')
-      		 * @param 	string 		Path to emoticons folder
-      		 * @return 	boolean		Success or fail
-      		 **/
-      		public function convertEmoticon($id, $info, $dupes, $path)
-      		{
-      			//-----------------------------------------
-      			// Make sure we have everything we need
-      			//-----------------------------------------
+    /**
+  		 * Convert an emoticon
+  		 *
+  		 * @access	public
+  		 * @param 	integer		Foreign ID number
+  		 * @param 	array 		Data to insert to table
+  		 * @param 	string 		How to handle duplicates ('local' or 'remote')
+  		 * @param 	string 		Path to emoticons folder
+  		 * @return 	boolean		Success or fail
+  		 **/
+  		public function convertEmoticon($id, $info, $dupes, $path)
+  		{
+  			//-----------------------------------------
+  			// Make sure we have everything we need
+  			//-----------------------------------------
 
-      			if (!$id)
-      			{
-      				$this->logError($id, 'No ID number provided');
-      				return false;
-      			}
-      			if (!$info['typed'])
-      			{
-      				$this->logError($id, 'No code provided');
-      				return false;
-      			}
-      			if (!$info['image'])
-      			{
-      				$this->logError($id, 'No code provided');
-      				return false;
-      			}
-      			if (!$info['emo_set'])
-      			{
-      				$info['emo_set'] = 'default';
-      			}
+  			if (!$id)
+  			{
+  				$this->logError($id, 'No ID number provided');
+  				return false;
+  			}
+  			if (!$info['typed'])
+  			{
+  				$this->logError($id, 'No code provided');
+  				return false;
+  			}
+  			if (!$info['image'])
+  			{
+  				$this->logError($id, 'No code provided');
+  				return false;
+  			}
+  			if (!$info['emo_set'])
+  			{
+  				$info['emo_set'] = 'default';
+  			}
 
-      			//-----------------------------------------
-      			// Handle duplicates
-      			//-----------------------------------------
+  			//-----------------------------------------
+  			// Handle duplicates
+  			//-----------------------------------------
 
-      			$dupe = $this->DB->buildAndFetch( array( 'select' => 'id', 'from' => 'emoticons', 'where' => "typed = '".addslashes($info['typed'])."' AND emo_set='{$info['emo_set']}'" ) );
-      			if ($dupe)
-      			{
-      				if ($dupes == 'local')
-      				{
-      					return false;
-      				}
-      				else
-      				{
-      					$this->DB->delete('emoticons', "id={$dupe['id']}");
-      				}
-      			}
+  			$dupe = $this->DB->buildAndFetch( array( 'select' => 'id', 'from' => 'emoticons', 'where' => "typed = '".addslashes($info['typed'])."' AND emo_set='{$info['emo_set']}'" ) );
+  			if ($dupe)
+  			{
+  				if ($dupes == 'local')
+  				{
+  					return false;
+  				}
+  				else
+  				{
+  					$this->DB->delete('emoticons', "id={$dupe['id']}");
+  				}
+  			}
 
-      			//-----------------------------------------
-      			// Move the file
-      			//-----------------------------------------
+  			//-----------------------------------------
+  			// Move the file
+  			//-----------------------------------------
 
-      			$emo_dir = DOC_IPS_ROOT_PATH.'public/style_emoticons/'.$info['emo_set'];
+  			$emo_dir = DOC_IPS_ROOT_PATH.'public/style_emoticons/'.$info['emo_set'];
 
-      			// Check we have a path
-      			if (!is_dir($emo_dir) and !mkdir($emo_dir))
-      			{
-      				$this->logError($id, 'Bad directory:'.$emo_dir);
-      				return false;
-      			}
+  			// Check we have a path
+  			if (!is_dir($emo_dir) and !mkdir($emo_dir))
+  			{
+  				$this->logError($id, 'Bad directory:'.$emo_dir);
+  				return false;
+  			}
 
-      			$this->moveFiles(array($info['image']), $path, $emo_dir);
+  			$this->moveFiles(array($info['image']), $path, $emo_dir);
 
-      			// Convert special chars
-      			$info['typed'] = IPSText::htmlspecialchars($info['typed']);
+  			// Convert special chars
+  			$info['typed'] = IPSText::htmlspecialchars($info['typed']);
 
-      			//-----------------------------------------
-      			// Insert
-      			//-----------------------------------------
+  			//-----------------------------------------
+  			// Insert
+  			//-----------------------------------------
 
-      			unset($info['id']);
-      			$this->DB->insert( 'emoticons', $info );
-      			$inserted_id = $this->DB->getInsertId();
+  			unset($info['id']);
+  			$this->DB->insert( 'emoticons', $info );
+  			$inserted_id = $this->DB->getInsertId();
 
-      			//-----------------------------------------
-      			// Add link
-      			//-----------------------------------------
+  			//-----------------------------------------
+  			// Add link
+  			//-----------------------------------------
 
-      			$this->addLink($inserted_id, $id, 'emoticons');
+  			$this->addLink($inserted_id, $id, 'emoticons');
 
-      			return true;
-      		}
+  			return true;
+  		}
 
 		/**
 		 * Convert a Container
@@ -1016,7 +1047,7 @@
 			$info['category_database_id'] = 1;
 
 			// We need to sort out the parent id
-			if ($info['category_parent_id'] != '0')
+			if ($info['category_parent_id'] != 0)
 			{
 				$parent = $this->getLink($info['category_parent_id'], 'ccs_database_categories');
 				if ($parent)
@@ -1124,7 +1155,12 @@
 			// Link
 			//-----------------------------------------
 			$info['member_id'] = $this->getLink($info['member_id'], 'members', TRUE);
-
+			
+			if ( $info['category_id'] )
+			{
+				$info['category_id'] = $this->getLink($info['category_id'], 'ccs_database_categories');
+			}
+			
 			//-----------------------------------------
 			// Insert
 			//-----------------------------------------
@@ -1170,8 +1206,10 @@
 			// Link
 			//-----------------------------------------
 
-			$info['comment_user'] = $this->getLink($info['comment_user'], 'members');
+			$info['comment_user'] = $this->getLink($info['comment_user'], 'members', true);
 			$info['comment_record_id'] = $this->getLink($info['comment_record_id'], 'database_entries');
+			
+			$info['comment_user']	= $info['comment_user'] ? $info['comment_user'] : 0;
 
 			//-----------------------------------------
 			// Insert
@@ -1214,93 +1252,94 @@
 			return $return;
 		}
 
-        /**
-      		 * Convert a custom bbcode
-      		 *
-      		 * @access	public
-      		 * @param 	integer		Foreign ID number
-      		 * @param 	array 		Data to insert to table
-      		 * @param 	string 		How to handle duplicates ('local' or 'remote')
-      		 * @return 	boolean		Success or fail
-      		 **/
-      		public function convertBBCode($id, $info, $dupes)
-      		{
-      			//-----------------------------------------
-      			// Make sure we have everything we need
-      			//-----------------------------------------
 
-      			if (!$id)
-      			{
-      				$this->logError($id, 'No ID number provided');
-      				return false;
-      			}
-      			if (!$info['bbcode_title'])
-      			{
-      				$this->logError($id, 'No title provided');
-      				return false;
-      			}
-      			if (!$info['bbcode_tag'])
-      			{
-      				$this->logError($id, 'No tag provided');
-      				return false;
-      			}
-      			if (!$info['bbcode_replace'] and !$info['bbcode_php_plugin'])
-      			{
-      				$this->logError($id, 'No replacement provided');
-      				return false;
-      			}
+    /**
+  		 * Convert a custom bbcode
+  		 *
+  		 * @access	public
+  		 * @param 	integer		Foreign ID number
+  		 * @param 	array 		Data to insert to table
+  		 * @param 	string 		How to handle duplicates ('local' or 'remote')
+  		 * @return 	boolean		Success or fail
+  		 **/
+  		public function convertBBCode($id, $info, $dupes)
+  		{
+  			//-----------------------------------------
+  			// Make sure we have everything we need
+  			//-----------------------------------------
 
-      			//-----------------------------------------
-      			// Handle duplicates
-      			//-----------------------------------------
+  			if (!$id)
+  			{
+  				$this->logError($id, 'No ID number provided');
+  				return false;
+  			}
+  			if (!$info['bbcode_title'])
+  			{
+  				$this->logError($id, 'No title provided');
+  				return false;
+  			}
+  			if (!$info['bbcode_tag'])
+  			{
+  				$this->logError($id, 'No tag provided');
+  				return false;
+  			}
+  			if (!$info['bbcode_replace'] and !$info['bbcode_php_plugin'])
+  			{
+  				$this->logError($id, 'No replacement provided');
+  				return false;
+  			}
 
-      			$codes = $this->DB->build( array( 'select' => 'bbcode_id, bbcode_tag, bbcode_aliases', 'from' => 'custom_bbcode' ) );
-      			$this->DB->execute();
+  			//-----------------------------------------
+  			// Handle duplicates
+  			//-----------------------------------------
 
-      			while ($row = $this->DB->fetch())
-      			{
+  			$codes = $this->DB->build( array( 'select' => 'bbcode_id, bbcode_tag, bbcode_aliases', 'from' => 'custom_bbcode' ) );
+  			$this->DB->execute();
 
-      				$aliases = array();
-      				$aliases = explode(',', $row['bbcode_aliases']);
+  			while ($row = $this->DB->fetch())
+  			{
 
-      				if ($row['bbcode_tag'] == $info['bbcode_tag'] || in_array($info['bbcode_tag'], $aliases)) {
+  				$aliases = array();
+  				$aliases = explode(',', $row['bbcode_aliases']);
 
-      					if ($dupes == 'local')
-      					{
-      						return false;
-      					}
-      					else
-      					{
-      						$this->DB->delete('custom_bbcode', "bbcode_id={$row['bbcode_id']}");
-      					}
+  				if ($row['bbcode_tag'] == $info['bbcode_tag'] || in_array($info['bbcode_tag'], $aliases)) {
 
-      				}
+  					if ($dupes == 'local')
+  					{
+  						return false;
+  					}
+  					else
+  					{
+  						$this->DB->delete('custom_bbcode', "bbcode_id={$row['bbcode_id']}");
+  					}
 
-      			}
+  				}
 
-      			// Strip spaces from tag
-      			$info['bbcode_tag'] = str_replace(' ', '', $info['bbcode_tag']);
+  			}
 
-      			//-----------------------------------------
-      			// Insert
-      			//-----------------------------------------
+  			// Strip spaces from tag
+  			$info['bbcode_tag'] = str_replace(' ', '', $info['bbcode_tag']);
 
-      			$info['bbcode_image'] = isset( $info['bbcode_image'] ) ? $info['bbcode_image'] : '';
+  			//-----------------------------------------
+  			// Insert
+  			//-----------------------------------------
 
-      			unset($info['bbcode_id']);
+  			$info['bbcode_image'] = isset( $info['bbcode_image'] ) ? $info['bbcode_image'] : '';
 
-      			// dropped columns
-      			unset($info['bbcode_parse']);
+  			unset($info['bbcode_id']);
 
-      			$this->DB->insert( 'custom_bbcode', $info );
-      			$inserted_id = $this->DB->getInsertId();
+  			// dropped columns
+  			unset($info['bbcode_parse']);
 
-      			//-----------------------------------------
-      			// Add link
-      			//-----------------------------------------
+  			$this->DB->insert( 'custom_bbcode', $info );
+  			$inserted_id = $this->DB->getInsertId();
 
-      			$this->addLink($inserted_id, $id, 'custom_bbcode');
+  			//-----------------------------------------
+  			// Add link
+  			//-----------------------------------------
 
-      			return true;
-      		}
-	}
+  			$this->addLink($inserted_id, $id, 'custom_bbcode');
+
+  			return true;
+  		}
+}

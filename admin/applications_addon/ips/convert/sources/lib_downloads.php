@@ -163,7 +163,7 @@
 					break;
 					
 				case 'downloads_files':
-					return array( 'downloads_files' => 'file_id', 'downloads_filestorage' => 'storage_id', 'downloads_ccontent' => 'file_id' );
+					return array( 'downloads_files' => 'file_id', 'downloads_filestorage' => 'storage_id', 'downloads_ccontent' => 'file_id', 'downloads_files_records' => 'record_file_id' );
 					break;
 					
 				case 'downloads_cfields':
@@ -178,10 +178,6 @@
 					return array( 'downloads_downloads' => 'did' );
 					break;
 					
-				case 'downloads_favorites':
-					return array( 'downloads_favorites' => 'fid' );
-					break;
-					
 				case 'downloads_filebackup':
 					return array( 'downloads_filebackup' => 'b_id' );
 					break;
@@ -189,6 +185,10 @@
 				case 'downloads_mods':
 					return array( 'downloads_mods' => 'modid' );
 					break;
+				
+				case 'downloads_favorites':
+					return array ( );
+				break;
 									
 				default:
 					$this->error('There is a problem with the converter: bad truncate command');
@@ -579,9 +579,15 @@
 					return false;
 				}
 				$this->moveFiles(array($info['file_filename']), $options['remote_path'], $save);
+				
 				if ($info['file_ssname'])
 				{
 					$this->moveFiles(array($info['file_ssname']), $options['remote_ss_path'], $sssave);
+				}
+				
+				if ($info['file_ssthumb'])
+				{
+					$this->moveFiles(array($info['file_ssthumb']), $options['remote_ss_path'], $sssave);
 				}
 			}
 			elseif ($info['file_storagetype'] == 'db')
@@ -592,6 +598,7 @@
 					return false;
 				}
 				$this->createFile($info['file_filename'], $info['data'], $info['file_size'], $save);
+				
 				if ($info['file_ssname'])
 				{
 					$this->createFile($info['file_name'], $info['ssdata'], $info['file_size'], $sssave);
@@ -603,8 +610,8 @@
 			//-----------------------------------------
 			
 			$info['file_cat'] = $this->getLink($info['file_cat'], 'downloads_categories');
-			$info['file_mime'] = $this->getLink($info['file_mime'], 'downloads_mime');
-			$info['file_ssmime'] = ($info['file_ssmime']) ? $this->getLink($info['file_ssmime'], 'downloads_mime') : 0;
+			//$info['file_mime'] = $this->getLink($info['file_mime'], 'downloads_mime');
+			//$info['file_ssmime'] = ($info['file_ssmime']) ? $this->getLink($info['file_ssmime'], 'downloads_mime') : 0;
 			$info['file_submitter'] = $this->getLink($info['file_submitter'], 'members', false, true);
 			$info['file_approver'] = ($info['file_approver']) ? $this->getLink($info['file_approver'], 'members', false, true) : 0;
 			$info['file_topicid'] = ($info['file_topicid']) ? $this->getLink($info['file_topicid'], 'topics') : 0;
@@ -613,11 +620,20 @@
 			// Insert
 			//-----------------------------------------
 			
-			$storage = array('storage_file' => $info['data'], 'storage_ss' => $info['ssdata']);
+			$storage 	= array( 'storage_file' => $info['data'], 'storage_ss' => $info['ssdata'] );
+			$screen		= array( 'ssname'	=> $info['file_ssname'], 'ssthumb' => $info['file_ssthumb'] );
+			$file		= array( 'name'		=> $info['file_filename'], 'storage' => $info['record_type'] );
 			
 			unset($info['file_id']);
 			unset($info['data']);
 			unset($info['ssdata']);
+			unset($info['file_filename']);
+			unset($info['file_storagetype']);
+			unset($info['file_mime']);
+			unset($info['file_ssname']);
+			unset($info['file_ssthumb']);
+			unset($info['record_type']);
+			
 			$this->DB->insert( 'downloads_files', $info );
 			$inserted_id = $this->DB->getInsertId();
 			
@@ -626,6 +642,59 @@
 				$this->DB->insert( 'downloads_filestorage', array_merge( array('storage_id' => $inserted_id), $storage ) );
 			}
 			
+			// Insert the record
+			$this->DB->insert( 'downloads_files_records',
+				array(
+					'record_type'			=> $file['storage'] ? $file['storage'] : 'upload',
+					'record_location'		=> $file['name'],
+					'record_storagetype'	=> 'web',
+					'record_realname'		=> $file['name'],
+					'record_file_id'		=> $inserted_id,
+					'record_mime'			=> $info['file_mime'],
+					'record_size'			=> $info['file_size']
+				)
+			);
+			
+			//-----------------------------------------
+			// Sort out download thumbnails
+			//-----------------------------------------
+			if ( $screen['ssname'] )
+			{
+				// Need to match this to a mimetype
+	            $e = explode('.', $screen['ssname']);
+	            $extension = array_pop( $e );
+	            $mime = $this->DB->buildAndFetch( array( 'select' => '*', 'from' => 'downloads_mime', 'where' => "mime_extension='{$extension}'" ) );
+	            
+	            if (!$mime) {
+	                $this->lib->logError($inserted_id, 'Invalid file extension for download thumbnail, cannot convert thumbnail: ' . $extension );
+	            }
+	            else
+	            {
+			        // Make an attempt at fetching the remote pic. If not, log an error.
+					if ( $remote = @file_get_contents( $sssave . '/' . $screen['ssname'] ) )
+					{
+						$filesize = strlen( $remote );
+	            	
+						$this->DB->insert( 'downloads_files_records',
+							array(
+								'record_type'			=> 'ssupload',
+								'record_location'		=> $screen['ssname'],
+								'record_thumb'			=> $screen['ssthumb'],
+								'record_storagetype'	=> 'web',
+								'record_realname'		=> $screen['ssname'],
+								'record_file_id'		=> $inserted_id,
+								'record_mime'			=> $mime['mime_id'],
+								'record_size'			=> $filesize
+							)
+						);
+					}
+					else
+					{
+						$this->logError ( $info['id'], 'Could not fetch remote picture file, screenshot not converted.' );
+					}
+				}
+			}
+					
 			//-----------------------------------------
 			// Sort out custom fields
 			//-----------------------------------------
@@ -842,7 +911,14 @@
 			// Make sure we have everything we need
 			//-----------------------------------------
 			
-			if (!$id)
+			$this->convertFollow ( array (
+				'like_app'			=> 'downloads',
+				'like_area'			=> 'files',
+				'like_rel_id'		=> $info['ffid'],
+				'like_member_id'	=> $info['fmid'],
+			) );
+			
+			/*if (!$id)
 			{
 				$this->logError($id, 'No ID number provided');
 				return false;
@@ -873,7 +949,7 @@
 			// Add link
 			//-----------------------------------------
 			
-			$this->addLink($inserted_id, $id, 'downloads_favorites');
+			$this->addLink($inserted_id, $id, 'downloads_favorites');*/
 			
 			return true;
 		}

@@ -241,8 +241,8 @@
 					break;
 					
 				case 'blog_tracker':
-					return array( 'blog_tracker' => 'tracker_id' );
-					break;
+					return array ( );
+				break;
 					
 				case 'blog_attachments':
 					return array( 'attachments' => 'attach_id' );
@@ -440,8 +440,6 @@
 			//-----------------------------------------
 			
 			$info['member_id'] = $this->getLink($info['member_id'], 'members', false, true);
-			$info['blog_theme_id'] = $info['blog_theme_id'] ? $this->getLink($info['blog_theme_id'], 'blog_themes') : 0;
-			$info['blog_header_id'] = $info['blog_header_id'] ? $this->getLink($info['blog_header_id'], 'blog_headers') : 0;
 								
 			//-----------------------------------------
 			// Insert
@@ -714,9 +712,13 @@
 			//-----------------------------------------
 			
 			$info['entry_id'] = $this->getLink($info['entry_id'], 'blog_entries');
-			$info['member_id'] = $info['member_id'] ? $this->getLink($info['member_id'], 'members', false, true) : 0;
+			$info['member_id'] = $info['member_id'] > 0 ? $this->getLink($info['member_id'], 'members', false, true) : 0;
 			
+			// Unset 3.2 removed fields
 			unset($info['comment_id']);
+			unset($info['comment_use_emo']);
+			unset($info['comment_edit_name']);
+			
 			$this->DB->insert( 'blog_comments', $info );
 			$inserted_id = $this->DB->getInsertId();
 			
@@ -1197,7 +1199,14 @@
 			// Make sure we have everything we need
 			//-----------------------------------------
 			
-			if (!$id)
+			$this->convertFollow ( array (
+				'like_app'			=> 'blog',
+				'like_area'			=> 'blog',
+				'like_rel_id'		=> $info['blog_id'],
+				'like_member_id'	=> $info['member_id'],
+			) );
+			
+			/*if (!$id)
 			{
 				$this->logError($id, '(SUBSCRIPTION) No ID number provided');
 				return false;
@@ -1232,7 +1241,7 @@
 			// Add link
 			//-----------------------------------------
 			
-			$this->addLink($inserted_id, $id, 'blog_tracker');
+			$this->addLink($inserted_id, $id, 'blog_tracker');*/
 			
 			return true;
 		}
