@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <versions>
 	<version>
-		<human>3.1</human>
-		<long>31003</long>
+		<human>3.3</human>
+		<long>33001</long>
+	</version>
+	<version>
+		<human>3.2</human>
+		<long>32001</long>
 	</version>
 </versions>
