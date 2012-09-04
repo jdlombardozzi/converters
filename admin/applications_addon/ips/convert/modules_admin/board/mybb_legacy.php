@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * MyBB
- * Last Update: $Date: 2011-07-29 18:42:31 +0100 (Fri, 29 Jul 2011) $
- * Last Updated By: $Author: AlexHobbs $
+ * Last Update: $Date: 2011-03-03 18:00:52 -0500 (Thu, 03 Mar 2011) $
+ * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 569 $
+ * @version		$Revision: 511 $
  */
 
 
@@ -494,6 +494,7 @@
 					'warn_level'		=> $row['warningpoints'],
 					'last_post'			=> $row['lastpost'],
 					'view_sigs'			=> $row['showsigs'],
+					'view_avs'			=> $row['showavatars'],
 					'bday_day'			=> ($row['birthday']) ? $birthday[0] : '',
 					'bday_month'		=> ($row['birthday']) ? $birthday[1] : '',
 					'bday_year'			=> ($row['birthday']) ? $birthday[2] : '',
@@ -521,31 +522,24 @@
 				// Uploaded
 				if ($row['avatartype'] == 'upload')
 				{
-					$profile['photo_type'] = 'custom';
-					$profile['photo_location'] = str_replace('./uploads/', '', $row['avatar']);
-					$profile['photo_location'] = preg_replace ( "/\?dateline=([0-9]+)/si", '', $profile['avatar_location'] ); // MyBB drives me insane sometimes.
-					$imgSize = explode ( '|', $row['avatardimensions'] );
-					$profile['pp_main_width']	= $imgSize[0];
-					$profile['pp_main_height']	= $imgSize[1];
+					$profile['avatar_type'] = 'upload';
+					$profile['avatar_location'] = str_replace('./uploads/', '', $row['avatar']);
+					$profile['avatar_size'] = str_replace('|', 'x', $row['avatardimensions']);
 					$path = $us['upload_path'];
 				}
 				// URL
 				elseif ($row['avatartype'] == 'remote')
 				{
-					$profile['photo_type'] = 'url';
-					$profile['photo_location'] = $row['avatar'];
-					$imgSize = explode ( '|', $row['avatardimensions'] );
-					$profile['pp_main_width']	= $imgSize[0];
-					$profile['pp_main_height']	= $imgSize[1];
+					$profile['avatar_type'] = 'url';
+					$profile['avatar_location'] = $row['avatar'];
+					$profile['avatar_size'] = str_replace('|', 'x', $row['avatardimensions']);
 				}
 				// Gallery
 				elseif ($row['avatartype'] == 'gallery')
 				{
-					$profile['photo_type'] = 'custom';
-					$profile['photo_location'] = str_replace('images/avatars/', '', $row['avatar']);
-					$imgSize = explode ( '|', $row['avatardimensions'] );
-					$profile['pp_main_width']	= $imgSize[0];
-					$profile['pp_main_height']	= $imgSize[1];
+					$profile['avatar_type'] = 'upload';
+					$profile['avatar_location'] = str_replace('images/avatars/', '', $row['avatar']);
+					$profile['avatar_size'] = str_replace('|', 'x', $row['avatardimensions']);
 					$path = $us['gal_path'];
 				}
 
@@ -930,7 +924,6 @@
 
 				$save = array(
 					'topic_id'		=> $row['tid'],
-					'post_title'	=> $row['subject'],
 					'author_id'		=> $row['uid'],
 					'author_name'	=> $row['username'],
 					'post_date'		=> $row['dateline'],

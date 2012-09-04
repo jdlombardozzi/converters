@@ -3,13 +3,13 @@
  * IPS Converters
  * Application Files
  * Login functions
- * Last Updated: $Date: 2011-08-02 17:12:19 +0100 (Tue, 02 Aug 2011) $
+ * Last Updated: $Date: 2011-06-08 12:44:41 -0400 (Wed, 08 Jun 2011) $
  *
- * @author 		$Author: AlexHobbs $
+ * @author 		$Author: rashbrook $
  * @copyright	(c) 2006 - 2009 Invision Power Services, Inc.
  * @package		IPS Converters
  * @link		http://www.invisionpower.com
- * @version		$Revision: 573 $
+ * @version		$Revision: 529 $
  */
 
 class converters
@@ -19,7 +19,7 @@ class converters
 	 * Constructor
 	 *
 	 * @param	ipsRegistry
-	 * @return	@e void
+	 * @return	void
 	 **/
 	public function __construct(ipsRegistry $registry, $parent)
 	{
@@ -65,7 +65,7 @@ class converters
 			$this->parent->cleanConvertData( md5($password) );
 			
 			// Force the log in
-			require_once( IPS_ROOT_PATH . 'sources/handlers/han_login.php' );/*noLibHook*/
+			require_once( IPS_ROOT_PATH . 'sources/handlers/han_login.php' );
 	    	$this->han_login =  new han_login( $this->registry );
 			$this->han_login->loginWithoutCheckingCredentials($this->parent->_memberData['member_id']);
 			
@@ -79,18 +79,31 @@ class converters
 		}
 		
 	}
+
+    private function activeforum($username, $email, $password)
+   	{
+      //http://www.mediawiki.org/wiki/Extension:DNNAuthentication
+
+      require_once( IPS_ROOT_PATH . 'sources/loginauth/convert/3des.php' );
+      $tripleDES = new tripleDES(array('private_iv' => "\0\0\0\0\0\0\0\0", 'decryptionKey' => 'FFC405D9D30E1DDC40B3710B3C86D39D458911B20924DB94' ));
+
+      $salty = base64_decode($this->parent->_memberData['misc']);
+      $toEncrypt = $tripleDES->hexstr(bin2hex($salty)) . implode("\0", str_split(trim($password))) . "\0";
+
+      $encodedPassword = $tripleDES->encryptToken($toEncrypt);
+
+      if ($encodedPassword == $this->parent->_memberData['conv_password'])
+      {
+        $this->return_code = "SUCCESS";
+        return true;
+      }
+      else
+      {
+        $this->return_code = "WRONG_AUTH";
+        return false;
+      }
+    }
 	
-	private function aef ( $username, $email, $password )
-	{
-		if ( $this->parent->_memberData['conv_password'] == md5 ( $this->parent->_memberData['misc'] . $password ) )
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}
 
 	private function bbpress($username, $email, $password) 
 	{
@@ -102,10 +115,10 @@ class converters
 		}
 		
 		$itoa64 = './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-		$crypt = $this->parent->hashCryptPrivate($password, $hash, $itoa64, 'P');
+		$crypt = $this->parent->hashCryptPrivate($_REQUEST['password'], $hash, $itoa64, 'P');
 		if ($crypt[0] == '*')
 		{
-			$crypt = crypt( $password, $hash );
+			$crypt = crypt( $_REQUEST['password'], $hash );
 		}
 		
 		return $crypt == $hash ? TRUE : FALSE;
@@ -194,6 +207,19 @@ class converters
 		return $success;
 	}
 
+    private function huddler($username, $email, $password) {
+      // Huddler
+      if (md5("H07".$password.$username) === $this->parent->_memberData['conv_password']) return true;
+
+      // vBulletin
+      if ($this->vbulletin($username, $email, $password) === true) return true;
+
+      // Drupal
+      if (md5($password) == $this->parent->_memberData['conv_password']) return true;
+
+      return false;
+    }
+
 	/**
 	 * Ikonboard
 	 **/
@@ -206,25 +232,28 @@ class converters
 		else
 		{
 			return false;
-
-		}
-	} 
-
-	/**
-	 * Joomla!
-	 */
-	private function joomla ( $username, $email, $password )
-	{
-		if ( $this->parent->_memberData['conv_password'] == md5 ( $password, $this->parent->_memberData['misc'] ) )
-		{
-			return true;
-		}
-		else
-		{
-			return false;
 		}
 	}
-	
+
+	/**
+	 * Joomla
+	 **/
+	private function joomla($username, $email, $password)
+	{
+		$success = false;
+
+        $parts	= explode( ':', $this->parent->_memberData['conv_password'] );
+		$crypt	= $parts[0];
+		$salt	= @$parts[1];
+
+		if ( $crypt == (($salt) ? md5($password.$salt) : md5($password)) )
+		{
+			$success = true;
+		}
+
+		return $success;
+	}
+
 	/**
 	 * PHPBB
 	 **/
@@ -235,10 +264,9 @@ class converters
 		$hash = $this->parent->_memberData['conv_password'];
 		
 		$itoa64 = './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-		
 		if (strlen($hash) == 34)
 		{
-			$success = ($this->parent->hashCryptPrivate($password, $hash, $itoa64) === $hash) ? true : false;
+			$success = ($this->parent->hashCryptPrivate($_REQUEST['password'], $hash, $itoa64) === $hash) ? true : false;
 		}
 		else
 		{
@@ -307,7 +335,7 @@ class converters
 	 **/
 	private function smf($username, $email, $password)
 	{
-		if($this->parent->_memberData['conv_password'] == sha1(strtolower($username) . html_entity_decode ($password)))
+		if(sha1(strtolower($username) . $password) == $this->parent->_memberData['conv_password'])
 		{
 			return true;
 		}
@@ -459,7 +487,7 @@ class converters
 	}
 	
 	/**
-	 * punBB
+	 * FluxBB
 	 */
 	private function fluxbb($username, $email, $password)
 	{
@@ -802,7 +830,6 @@ class webWizAuth {
 	{
 	    if (strlen($strSecret) == 0 || strlen($strSecret) >= pow(2,61)) {
 			return  "0000000000000000000000000000000000000000";
-			break;
 	    }
 
 		//Initial Hex words are used for encoding Digest.  
@@ -828,6 +855,7 @@ class webWizAuth {
 			$strH[0]= self::HexAdd(substr($strEncode,0,8),$strH[0]);
 			$strH[1]= self::HexAdd(substr($strEncode,8,8),$strH[1]);
 			$strH[2]= self::HexAdd(substr($strEncode,16,8),$strH[2]);
+			$strH[3]= self::HexAdd(substr($strEncode,24,8),$strH[3]);
 			$strH[3]= self::HexAdd(substr($strEncode,24,8),$strH[3]);
 			$strH[4]= self::HexAdd(substr($strEncode,strlen($strEncode)-(8)),$strH[4]);
 		}

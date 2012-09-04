@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Calendar 3.0 Converters
  * SMF
- * Last Update: $Date: 2011-07-12 19:47:24 +0100 (Tue, 12 Jul 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2010-03-19 11:03:12 +0100(ven, 19 mar 2010) $
+ * Last Updated By: $Author: terabyte $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 549 $
+ * @version		$Revision: 437 $
  */
 
 
@@ -235,10 +235,10 @@
 
 			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 			{
-				/*$explode_start = explode('-', $row['start_date']);
+				$explode_start = explode('-', $row['start_date']);
 				$explode_end = explode('-', $row['end_date']);
 				$start = mktime( 0, 0, 0, $explode_start[1], $explode_start[2], $explode_start[0] );
-				$end = mktime( 0, 0, 0, $explode_end[1], $explode_end[2], $explode_end[0] );*/
+				$end = mktime( 0, 0, 0, $explode_end[1], $explode_end[2], $explode_end[0] );
 
 				$topic = ipsRegistry::DB('hb')->buildAndFetch(array('select' => '*', 'from' => 'topics', 'where' => 'id_topic='.$row['id_topic']));
 				$post = ipsRegistry::DB('hb')->buildAndFetch(array('select' => '*', 'from' => 'messages', 'where' => 'id_msg='.$topic['id_first_msg']));
@@ -251,9 +251,9 @@
 					'event_smilies'		=> $post['smileys_enabled'],
 					'event_perms'		=> '*',
 					'event_approved'	=> $topic['approved'],
-					'event_saved'		=> $post['poster_time'],
-					'event_start_date'	=> $row['start_date'] . ' 00:00:00',
-					'event_end_date'	=> $row['end_date'] . ' 00:00:00',
+					'event_unixstamp'	=> $post['poster_time'],
+					'event_unix_from'	=> $start,
+					'event_unix_to'		=> $end,
 					);
 
 				$this->lib->convertEvent($row['id_event'], $save, $literal);

@@ -3,14 +3,14 @@
  * IPS Converters
  * Application Files
  * Sets up a conversion
- * Last Update: $Date: 2011-07-15 19:03:18 +0100 (Fri, 15 Jul 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2009-11-16 17:54:23 +0100(lun, 16 nov 2009) $
+ * Last Updated By: $Author: jason $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 553 $
+ * @version		$Revision: 383 $
  */
 
 
@@ -79,12 +79,10 @@ class admin_convert_setup_setup extends ipsCommand
 		{
 			$extra .= $this->html->convertApp('calendar', 'IP.Calendar');
 		}
-		/*
-		No longer an IPS product.
-		if (is_dir(IPS_ROOT_PATH.'/applications_addon/other/subscriptions') && !IPSLib::appIsInstalled ( 'nexus' ))
+		if (is_dir(IPS_ROOT_PATH.'/applications_addon/other/subscriptions'))
 		{
 			$extra .= $this->html->convertApp('subscriptions', 'IP.Subscriptions');
-		}*/
+		}
 		if (is_dir(IPS_ROOT_PATH.'/applications_addon/ips/blog'))
 		{
 			$extra .= $this->html->convertApp('blog', 'IP.Blog');
@@ -104,10 +102,6 @@ class admin_convert_setup_setup extends ipsCommand
 		if (is_dir(IPS_ROOT_PATH.'/applications_addon/other/tracker'))
 		{
 			$extra .= $this->html->convertApp('tracker', 'IP.Tracker');
-		}
-		if (is_dir ( IPS_ROOT_PATH . '/applications_addon/ips/nexus' ) )
-		{
-			$extra .= $this->html->convertApp ( 'nexus', 'IP.Nexus' );
 		}
 
 		$this->registry->output->html .= $this->html->convertShowSoftware($extra);

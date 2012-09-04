@@ -3,14 +3,14 @@
  * IPS Converters
  * Application Files
  * Library functions
- * Last Update: $Date: 2011-07-29 18:42:31 +0100 (Fri, 29 Jul 2011) $
- * Last Updated By: $Author: AlexHobbs $
+ * Last Update: $Date: 2010-03-11 11:19:51 +0100(gio, 11 mar 2010) $
+ * Last Updated By: $Author: terabyte $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 569 $
+ * @version		$Revision: 433 $
  */
 
 abstract class lib_master extends _interface
@@ -52,7 +52,7 @@ abstract class lib_master extends _interface
 	 * Test connect to external database
 	 *
 	 * @access 	public
-	 * @param 	array 			Database details
+	 * @param 	array 			Dataloadbase details
 	 * @return 	Error, or true on success
 	 **/
 	public function test_connect($app)
@@ -111,13 +111,13 @@ abstract class lib_master extends _interface
 		// Turn the board (or whatever) offline
 		//-----------------------------------------
 
-		$doNothing		= false;
+		$doNothing		= true; // Screw this turn offline for everthing stuff.
 		$offlineSetting = 'board_offline';
 		$offlineSetTo	= true;
 		$offlineMessage = 'offline_msg';
 
 		switch ($this->app['sw'])
-		{
+		{			
 			case 'blog':
 				$offlineSetting = 'blog_online';
 				$offlineSetTo 	= false;
@@ -959,7 +959,7 @@ abstract class lib_master extends _interface
 	 * @param 	string 		Path to profile pictures folder
 	 * @return 	boolean		Success or fail
 	 **/
-	public function convertMember($info, $members, $profile, $custom, $pic_path='', $groupLink=TRUE)
+	public function convertMember($info, $members, $profile, $custom, $avvy_path='', $profile_path='', $groupLink=TRUE)
 	{
 		ipsRegistry::getClass( 'class_localization' )->loadLanguageFile( array( 'public_register' ), 'core' );
 
@@ -1208,12 +1208,8 @@ abstract class lib_master extends _interface
 		// 3.1.3 dropped columns
 		unset($members['email_pm']);
 		
-		// 3.2.0 Dropped columns
-		unset ( $members['hide_email'] );
-		unset ( $members['view_avs'] );
-		
 		// Force misc field as string to aboid DB errors on hex numbers..
-		$this->DB->setDataType( 'misc', 'string' );
+		$this->DB->force_data_type = array( 'misc' => 'string' );
 		$this->DB->insert( 'members', $members );
 		$memberId = $this->DB->getInsertId();
 
@@ -1226,7 +1222,7 @@ abstract class lib_master extends _interface
 			// after email verificiation has taken place,
 			// we restore their previous group and remove the validate_key
 			//-----------------------------------------
-			$this->DB->insert( 'validating', array( 'vid'         => md5( IPSMember::makePassword() . time() ),
+			$this->DB->insert( 'validating', array( 'vid'         => md5( IPSLib::makePassword() . time() ),
 													'member_id'   => $memberId,
 													'real_group'  => $this->settings['member_group'],
 													'temp_group'  => $this->settings['auth_group'],
@@ -1243,37 +1239,12 @@ abstract class lib_master extends _interface
 		//-----------------------------------------
 		// Sort out uploaded avatars / photos
 		//-----------------------------------------
-		/*if (!is_dir($avvy_path) and $profile['avatar_type'] == 'upload' and !$profile['avatar_data'])
+		if (!is_dir($avvy_path) and $profile['avatar_type'] == 'upload' and !$profile['avatar_data'])
 		{
 			$this->logError($info['id'], 'Incorrect avatar path');
 			//return false;
-		}*/
-
-		if ( $profile['photo_type'] == 'url' )
-		{
-			// Make an attempt at fetching the remote pic. If not, log an error.
-			if ( $remote = @file_get_contents ( $profile['photo_location'] ) )
-			{
-				$profile['photo_data'] = $remote;
-				$profile['photo_type'] = 'custom';
-				if ( !isset ( $profile['photo_filesize'] ) )
-				{
-					$profile['photo_filesize'] = filesize ( $remote );
-				}
-			}
-			else
-			{
-				$this->logError ( $info['id'], 'Could not fetch remote picture file.' );
-			}
 		}
-		
-		// Oops... I screwed up... workaround for now... will fix properly soon.
-		if ( $profile['photo_type'] != 'url' AND $profile['photo_location'] AND !$profile['pp_main_photo'] )
-		{
-			$profile['pp_main_photo'] = $profile['photo_location'];
-		}
-
-		if (!is_dir($pic_path) and $profile['pp_main_photo'] and !$profile['photo_data'])
+		if (!is_dir($profile_path) and $profile['pp_main_photo'] and !$profile['photo_data'])
 		{
 			$this->logError($info['id'], 'Incorrect profile pictures path');
 			//return false;
@@ -1313,31 +1284,25 @@ abstract class lib_master extends _interface
 			// What's the extension?
 			$e = explode('.', $profile['pp_main_photo']);
 			$extension = array_pop( $e );
-			
-			// There's an issue with profile photo thumbnail rebuilds. Waiting on the deal with that issue before adjusting this.
-			// For now, we'll just set the thumbnail the same as the main photo.
-			$profile['pp_thumb_photo'] = "{$upload_dir}photo-{$memberId}.{$extension}";
 
 			if ($profile['photo_data'])
 			{
 				//$this->createFile($profile['pp_main_photo'], $profile['photo_data'], $profile['photo_filesize'], $this->settings['upload_dir']);
 				$this->createFile("photo-{$memberId}.{$extension}", $profile['photo_data'], $profile['photo_filesize'], $upload_path);
-				$profile['pp_main_photo']	= "{$upload_dir}photo-{$memberId}.{$extension}";
+				$profile['pp_main_photo'] = "{$upload_dir}photo-{$memberId}.{$extension}";
 			}
 			else
 			{
 				//$this->moveFiles(array($profile['pp_main_photo']), $profile_path, $this->settings['upload_dir']);
-				$this->moveFiles(array($profile['pp_main_photo']), $pic_path, $upload_path);
+				$this->moveFiles(array($profile['pp_main_photo']), $profile_path, $upload_path);
 				if ( $upload_dir != '' && @rename($upload_path."/{$profile['pp_main_photo']}", $upload_path."/photo-{$memberId}.{$extension}") )
 				{
-					$profile['pp_main_photo'] = "{$upload_dir}photo-{$memberId}.{$extension}";
+					$profile['pp_main_photo'] = "{$upload_dir}/photo-{$memberId}.{$extension}";
 				}
 			}
-			
-			
 		}
 
-		/*if ($profile['avatar_type'] == 'upload')
+		if ($profile['avatar_type'] == 'upload')
 		{
 			// What's the extension?
 			$e = explode('.', $profile['avatar_location']);
@@ -1357,20 +1322,17 @@ abstract class lib_master extends _interface
 					$profile['avatar_location'] = "av-{$memberId}.{$extension}";
 				}
 			}
-		}*/
+		}
 
 		//createFile($filename, $filedata, $filesize, $destination)
-		$profile['pp_photo_type'] = $profile['photo_type'];
-		
+
 		unset($profile['avatar_data']);
 		unset($profile['photo_data']);
 		unset($profile['photo_filesize']);
 		unset($profile['avatar_filesize']);
-		unset ( $profile['photo_type'] );
-		unset ( $profile['photo_location'] );
 
 		$this->DB->insert( 'profile_portal', $profile );
-		
+
 		//-----------------------------------------
 		// Custom profile stuff
 		//-----------------------------------------
@@ -1547,11 +1509,6 @@ abstract class lib_master extends _interface
 			$this->logError($id, 'No path provided');
 			return false;
 		}
-		//if (!$info['attach_ext'])
-		//{
-			//$this->logError($id, 'No extension provided');
-			//return false;
-		//}
 		if (!$info['attach_file'])
 		{
 			$this->logError($id, 'No filename provided');
@@ -1604,15 +1561,6 @@ abstract class lib_master extends _interface
 		}
 
 		//-----------------------------------------
-		// Can upload?
-		//-----------------------------------------
-	//	if ( ! $this->attach_stats['allow_uploads'] )
-		//{
-			//$this->error = 'upload_failed';
-			//return;
-		//}
-
-		//-----------------------------------------
 		// Set up array
 		//-----------------------------------------
 		$attach_data = array( 'attach_ext'            => "",
@@ -1625,8 +1573,7 @@ abstract class lib_master extends _interface
 							  'attach_member_id'      => $this->memberData['member_id'],
 							  'attach_rel_id'         => 0,
 							  'attach_rel_module'     => $info['attach_rel_module'],
-							  'attach_filesize'       => 0,
-							  'attach_parent_id'	  => $info['attach_parent_id'] );
+							  'attach_filesize'       => 0 );
 
 		//-----------------------------------------
 		// Populate allowed extensions
@@ -1775,17 +1722,23 @@ abstract class lib_master extends _interface
 		$this->DB->insert( 'attachments', $attach_data );
 		$inserted_id = $this->DB->getInsertId();
 
-		// Update module attachment count cache
-		/*switch ($info['attach_rel_module'])
-		{
-			case 'post':
-				$this->DB->update( 'topics', array( 'topic_hasattach' => 1 ), "tid=''" );
-				break;
+        // Update module attachment count cache
+        switch($info['attach_rel_module'])
+        {
+          case 'post':
+            $topic = $this->DB->buildAndFetch(array('select' => 'topic_id', 'from' => 'posts', 'where' => "pid='{$attach_data['attach_rel_id']}'"));
+            if ($topic) {
+              $this->DB->update('topics', array('topic_hasattach' => 1), "tid='{$topic['topic_id']}'");
+            }
+            break;
 
-			case 'msg':
-				$this->DB->update( 'message_topics', array( 'mt_hasattach' => 1 ), "mt_id=''" );
-				break;
-		}*/
+          case 'msg':
+            $topic = $this->DB->buildAndFetch(array('select' => 'msg_topic_id', 'from' => 'message_posts', 'where' => "msg_id='{$attach_data['attach_rel_id']}"));
+            if ($topic) {
+              $this->DB->update('message_topics', array('mt_hasattach' => 1), "mt_id='{$topic['msg_topic_id']}'");
+            }
+            break;
+        }
 
 		//-----------------------------------------
 		// Add link
@@ -1898,11 +1851,6 @@ abstract class lib_master extends _interface
 			unset($info['g_id']);
 			unset($info['g_invite_friend']);
 			
-			// 3.2.1 dropped columns (Tracker: 31613)
-			unset ( $info['g_email_friend'] );
-			unset ( $info['g_email_limit'] );
-			unset ( $info['g_avatar_upload'] );
-			
 			$this->DB->insert( 'groups', $info );
 			$inserted_id = $this->DB->getInsertId();
 
@@ -1972,50 +1920,6 @@ abstract class lib_master extends _interface
 		}
 
 		return true;
-	}
-	
-	/**
-	 * Convert Follow
-	 * 
-	 * @access	private
-	 * @return	void
-	 */
-	public function convertFollow ( $info )
-	{
-		if ( !$info['like_app'] )
-		{
-			$this->error ( 'No Application Provided.' );
-			return false;
-		}
-		
-		if ( !$info['like_area'] )
-		{
-			$this->error ( 'No Area provided.' );
-			return false;
-		}
-		
-		if ( !$info['like_rel_id'] )
-		{
-			$this->error ( 'No Relative ID provided.' );
-			return false;
-		}
-		
-		if ( !$info['like_member_id'] )
-		{
-			$this->error ( 'No Member ID provided.' );
-			return false;
-		}
-		
-		
-		
-		unset ( $info['like_id'] );
-		unset ( $info['like_lookup_id'] );
-		unset ( $info['like_lookup_area'] );
-		$info['like_id']			= md5 ( $info['like_app'] . ';' . $info['like_area'] . ';' . $info['like_rel_id'] . ';' . $info['like_member_id'] );
-		$info['like_lookup_id']		= md5 ( $info['like_app'] . ';' . $info['like_area'] . ';' . $info['like_rel_id'] );
-		$info['like_lookup_area']	= md5 ( $info['like_app'] . ';' . $info['like_area'] . ';' . $info['like_member_id'] );
-		
-		$this->DB->insert ( 'core_like', $info );
 	}
 
 	/**
@@ -2199,7 +2103,6 @@ abstract class lib_master extends _interface
 		IPSLib::updateSettings(array('conv_error' => serialize($this->errors)));
 		$end = ($this->end > $total) ? $total : $this->end;
 		//print "{$this->settings['base_url']}app=convert&module={$this->app['sw']}&section={$this->app['app_key']}&do={$this->request['do']}&lastKey=" . urlencode($this->lastKey) . "&count={$this->end}&cycle={$this->request['cycle']}&total={$total}<br />{$end} of {$total} converted<br />{$message}";exit;
-		$this->registry->output->html .= $this->registry->output->global_template->temporaryRedirect("{$this->settings['base_url']}app=convert&module={$this->app['sw']}&section={$this->app['app_key']}&do={$this->request['do']}&lastKey=" . urlencode($this->lastKey) . "&count={$this->end}&cycle={$this->request['cycle']}&total={$total}", "<strong>{$end} of {$total} converted</strong><br />{$message}<br /><br /><strong><a href='{$this->settings['base_url']}app=convert&module={$this->app['sw']}&section={$this->app['app_key']}&do={$this->request['do']}&st={$this->end}&cycle={$this->request['cycle']}&total={$total}'>Click here if you are not redirected.</a></strong>");
-		$this->sendOutput ( );
+		$this->registry->output->redirect("{$this->settings['base_url']}app=convert&module={$this->app['sw']}&section={$this->app['app_key']}&do={$this->request['do']}&lastKey=" . urlencode($this->lastKey) . "&count={$this->end}&cycle={$this->request['cycle']}&total={$total}", "{$end} of {$total} converted<br />{$message}");
 	}
 }

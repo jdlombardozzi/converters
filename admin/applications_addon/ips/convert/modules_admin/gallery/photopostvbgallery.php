@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Gallery 3.0 Converters
  * Photopost
- * Last Update: $Date: 2011-08-01 22:52:02 +0100 (Mon, 01 Aug 2011) $
- * Last Updated By: $Author: AlexHobbs $
+ * Last Update: $Date: 2011-06-08 12:44:41 -0400 (Wed, 08 Jun 2011) $
+ * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 572 $
+ * @version		$Revision: 529 $
  */
 
 $info = array( 'key'	=> 'photopostvbgallery',
@@ -58,8 +58,9 @@ class admin_convert_gallery_photopostvbgallery extends ipsCommand
 		}
 		
 		$forAll = array(
-			'gallery_albums'		=> array('members'),
-			'gallery_images'		=> array('members', 'gallery_albums'),
+			'gallery_categories'	=> array('members'),
+			'gallery_albums'		=> array('members', 'gallery_categories'),
+			'gallery_images'		=> array('members', 'gallery_categories', 'gallery_albums'),
 			'gallery_comments'		=> array('members', 'gallery_images'),
 			//'gallery_ecardlog'		=> array('gallery_images', 'members'),
 			);
@@ -138,9 +139,13 @@ class admin_convert_gallery_photopostvbgallery extends ipsCommand
 			case 'members':
 				return $this->lib->countRows('ppgal_users');
 				break;
+									
+			case 'gallery_categories':
+				return $this->lib->countRows('ppgal_categories', "membercat='0'");
+				break;
 				
 			case 'gallery_albums':
-				return $this->lib->countRows('ppgal_categories');
+				return $this->lib->countRows('ppgal_categories', "membercat='1'");
 				break;
 				
 			case 'gallery_images':
@@ -402,8 +407,8 @@ class admin_convert_gallery_photopostvbgallery extends ipsCommand
 			
 			if ($row['avatar'])
 			{
-				$profile['photo_type'] = 'custom';
-				$profile['pp_main_photo'] = $row['avatar'];
+				$profile['avatar_type'] = 'upload';
+				$profile['avatar_location'] = $row['avatar'];
 				$path = $us['avvy_path'];
 			}
 			
@@ -428,6 +433,63 @@ class admin_convert_gallery_photopostvbgallery extends ipsCommand
 							
 		}
 
+		$this->lib->next();
+
+	}
+	
+	/**
+	 * Convert Categories
+	 *
+	 * @access	private
+	 * @return void
+	 **/
+	private function convert_gallery_categories()
+	{
+		//---------------------------
+		// Set up
+		//---------------------------
+		$main = array(	'select' 	=> '*',
+						'from' 		=> 'ppgal_categories',
+						'where' => "membercat='0'",
+						'order'		=> 'catid ASC',
+					);
+										
+		$loop = $this->lib->load('gallery_categories', $main);
+		
+		//-----------------------------------------
+		// Get remote groups
+		//-----------------------------------------
+	/*	$groups = array();
+		ipsRegistry::DB('hb')->build( array( 'select' => '*', 'from' => 'usergroups' ) );
+		ipsRegistry::DB('hb')->execute();
+		while ( $row = ipsRegistry::DB('hb')->fetch() )
+		{
+			$groups[] = $row['groupid'];
+		}*/
+		
+		//---------------------------
+		// Loop
+		//---------------------------
+	
+		while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
+		{
+			$perms = array();
+			//$perms['view_thumbnails']	= $this->_populatePerms($row, $groups, 'view');
+			//$perms['view_images']		= $this->_populatePerms($row, $groups, 'view');
+			//$perms['post_images']		= $this->_populatePerms($row, $groups, 'upload');
+			//$perms['comment']			= $this->_populatePerms($row, $groups, 'comment');
+			
+			$save = array(
+				'album_parent_id'			=> $row['parent'],
+				'album_name'				=> $row['title'],
+				'album_description'			=> $row['description'],
+				'password'					=> $row['password'],
+				'album_g_container_only'	=> ($row['parent'] == 0 ? 1 : 0),
+				);
+			
+			$this->lib->convertAlbum($row['catid'], $save, array ( ), true);			
+		}
+	
 		$this->lib->next();
 
 	}
@@ -490,25 +552,17 @@ class admin_convert_gallery_photopostvbgallery extends ipsCommand
 	
 		$main = array(	'select' 	=> '*',
 						'from' 		=> 'ppgal_categories',
+						'where'		=> "membercat='1'",
 						'order'		=> 'catid ASC',
 					);
 				
 		$loop = $this->lib->load('gallery_albums', $main);
 		
-		// Get remote groups
-		$groups = array();
-		ipsRegistry::DB('hb')->build( array( 'select' => '*', 'from' => 'usergroup' ) );
-		ipsRegistry::DB('hb')->execute();
-		while ( $row = ipsRegistry::DB('hb')->fetch() )
-		{
-			$groups[] = $row['groupid'];
-		}
-		
 		//-----------------------------------------
 		// We need to know how to handle orphans
 		//-----------------------------------------
 		
-		$options = array();
+		$options = array ( );
 		$this->DB->build ( array (
 			'select'	=> '*',
 			'from'		=> 'gallery_albums_main',
@@ -525,7 +579,7 @@ class admin_convert_gallery_photopostvbgallery extends ipsCommand
 			$this->lib->error ( 'You need at least one Global Album before you may continue.' );
 		}
 
-		$this->lib->getMoreInfo('gallery_albums', $loop, array('container_album' => array('type' => 'dropdown', 'label' => 'The Global Album to store all Member Albums in:', 'options' => $options )));
+		$this->lib->getMoreInfo('gallery_albums', $loop, array('container_album' => array('type' => 'dropdown', 'label' => 'The Global Album to store all Member Albums in:', 'options' => $cats)));
 		
 		$get = unserialize($this->settings['conv_extra']);
 		$us = $get[$this->lib->app['name']];
@@ -540,16 +594,10 @@ class admin_convert_gallery_photopostvbgallery extends ipsCommand
 				'album_owner_id'	=> $row['catuserid'],
 				'album_is_public'	=> 1,
 				'album_name'		=> $row['title'],
-				'album_description'	=> $row['description'],
 				'album_parent_id'	=> $row['parent'] == 0 ? $us['container_album'] : $row['parent'],
-				
-				// Permissions
-				'album_g_perms_view'		=> $this->_populatePerms($row, $groups, 'view'),
-				'album_g_perms_images'		=> $this->_populatePerms($row, $groups, 'upload'),
-				'album_g_perms_comments'	=> $this->_populatePerms($row, $groups, 'comment')
-			);
+				);
 			
-			$this->lib->convertAlbum($row['catid'], $save, array(), true);			
+			$this->lib->convertAlbum($row['catid'], $save, array ( ), true);			
 		}
 	
 		$this->lib->next();
@@ -612,7 +660,7 @@ class admin_convert_gallery_photopostvbgallery extends ipsCommand
 							
 			// Basic info
 			$save = array( 'member_id'			=> $row['userid'],
-						   'img_album_id'		=> $row['catid'],
+						   'img_album_id'			=> ( $this->lib->getLink($row['catid'], 'gallery_albums', true) ) ? $row['catid'] : 0,
 						   'caption'			=> $row['title'],
 						   'description'		=> $row['description'],
 						   'directory'			=> $row['catid'],

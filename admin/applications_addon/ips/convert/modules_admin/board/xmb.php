@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * XMB
- * Last Update: $Date: 2011-07-14 18:46:04 +0100 (Thu, 14 Jul 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2010-03-19 11:03:12 +0100(ven, 19 mar 2010) $
+ * Last Updated By: $Author: terabyte $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 552 $
+ * @version		$Revision: 437 $
  */
 
 	$info = array(
@@ -152,7 +152,7 @@
 					break;
 
 				case 'attachments':
-					return $this->lib->countRows('attachments');
+					return $this->lib->countRows('attachments', 'parentid=0');
 					break;
 
 				case 'banfilters':
@@ -430,8 +430,8 @@
 
 				if ($row['avatar'])
 				{
-					$profile['photo_type'] = 'url';
-					$profile['photo_location'] = $row['avatar'];
+					$profile['avatar_type'] = 'url';
+					$profile['avatar_location'] = $row['avatar'];
 				}
 
 				//-----------------------------------------

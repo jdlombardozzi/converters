@@ -3,14 +3,14 @@
  * IPS Converters
  * WordPress 3.1 Converters
  * vBulletin
- * Last Update: $Date: 2011-07-12 21:15:48 +0100 (Tue, 12 Jul 2011) $
+ * Last Update: $Date: 2011-04-01 13:22:34 -0400 (Fri, 01 Apr 2011) $
  * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 550 $
+ * @version		$Revision: 517 $
  */
 
 	$info = array(
@@ -364,7 +364,7 @@
 				// And go!
 				//-----------------------------------------
 
-				$this->lib->convertMember($info, $members, array(), $custom, '', FALSE);
+				$this->lib->convertMember($info, $members, array(), $custom, '', '', FALSE);
 			}
 			
 			$this->lib->next();

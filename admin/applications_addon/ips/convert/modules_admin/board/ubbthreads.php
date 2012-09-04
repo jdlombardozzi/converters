@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * UBB.Threads
- * Last Update: $Date: 2011-07-31 13:28:48 +0100 (Sun, 31 Jul 2011) $
- * Last Updated By: $Author: AlexHobbs $
+ * Last Update: $Date: 2010-03-19 11:03:12 +0100(ven, 19 mar 2010) $
+ * Last Updated By: $Author: terabyte $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 571 $
+ * @version		$Revision: 437 $
  */
 
 	$info = array(
@@ -213,7 +213,6 @@
 				case 'members':
 				case 'groups':
 				case 'forum_perms':
-				case 'attachments':
 					return true;
 					break;
 
@@ -470,8 +469,8 @@
 
 				if ($row['USER_AVATAR'])
 				{
-					$profile['photo_type'] = 'url';
-					$profile['photo_location'] = $row['USER_AVATAR'];
+					$profile['avatar_type'] = 'url';
+					$profile['avatar_location'] = $row['USER_AVATAR'];
 				}
 
 				//-----------------------------------------
@@ -510,7 +509,7 @@
 
 			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 			{
-				$this->lib->convertForum($row['CATEGORY_ID'], array(
+				$this->lib->convertForum('c'.$row['CATEGORY_ID'], array(
 					'name'			=> $row['CATEGORY_TITLE'],
 					'description'	=> $row['CATEGORY_DESCRIPTION'],
 					'position'		=> $row['CATEGORY_SORT_ORDER'],
@@ -600,11 +599,11 @@
 			// Loop
 			//---------------------------
 
-			foreach ( $loop as $row )
+			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 			{
 				// Set info
 				$save = array(
-					'parent_id'			=> -1,
+					'parent_id'			=> $row['FORUM_PARENT'] ? $row['FORUM_PARENT'] : 'c'.$row['CATEGORY_ID'],
 					'position'			=> $row['FORUM_SORT_ORDER'],
 					'name'				=> $row['FORUM_TITLE'],
 					'description'		=> $row['FORUM_DESCRIPTION'],
@@ -612,7 +611,6 @@
 					'posts'				=> $row['FORUM_POSTS'],
 					'inc_postcount'		=> $row['FORUM_POSTS_COUNT'],
 					'status'			=> $row['FORUM_IS_ACTIVE'],
-					'conv_parent'		=> $row['FORUM_PARENT'] ? $row['FORUM_PARENT'] : $row['CATEGORY_ID'],
 					);
 
 				// Save
@@ -815,9 +813,7 @@
 				// Map Data
 				//-----------------------------------------
 
-				$maps 	= array();
-				$cache	= array();
-				
+				$maps = array();
 				$_invited = array();
 				ipsRegistry::DB('hb')->build(array('select' => '*', 'from' => 'PRIVATE_MESSAGE_USERS', 'where' => "TOPIC_ID={$row['TOPIC_ID']}"));
 				ipsRegistry::DB('hb')->execute();
@@ -910,7 +906,7 @@
 			// We need to know the path
 			//-----------------------------------------
 
-			$this->lib->getMoreInfo('attachments', $loop, array('attach_path' => array('type' => 'text', 'label' => 'The path to the folder where your UBB.Threads attachments are saved (no trailing slash):')), 'path');
+			$this->lib->getMoreInfo('attachments', $loop, array('attach_path' => array('type' => 'text', 'label' => 'The path to the folder where attachments are saved (no trailing slash):')), 'path');
 
 			$get = unserialize($this->settings['conv_extra']);
 			$us = $get[$this->lib->app['name']];
@@ -935,17 +931,6 @@
 
 			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 			{
-				$topic	= ipsRegistry::DB('hb')->buildAndFetch(
-					array(
-						'select'	=> 'TOPIC_ID',
-						'from'		=> 'POSTS',
-						'where'		=> 'POST_ID=' . $row['POST_ID']
-					)
-				);
-				
-				// Now we have the foreign ID, grab our proper one
-				$ipbTopic = $this->lib->getLink( $topic['TOPIC_ID'], 'topics' );
-				
 				$save = array(
 					'attach_ext'			=> $row['FILE_TYPE'],
 					'attach_file'			=> $row['FILE_ORIGINAL_NAME'],
@@ -959,7 +944,6 @@
 					'attach_rel_module'		=> 'post',
 					'attach_img_width'		=> $row['FILE_WIDTH'],
 					'attach_img_height'		=> $row['FILE_HEIGHT'],
-					'attach_parent_id'		=> $ipbTopic
 					);
 
 				$this->lib->convertAttachment($row['FILE_ID'], $save, $path);
@@ -1384,10 +1368,10 @@
 			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 			{
 				$save = array(
-					'status_member_id'	=> $row['PROFILE_ID'],
-					'status_author_id'	=> $row['USER_ID'],
-					'status_date'			=> $row['COMMENT_TIME'],
-					'status_content'		=> $row['COMMENT_BODY'],
+					'comment_for_member_id'	=> $row['PROFILE_ID'],
+					'comment_by_member_id'	=> $row['USER_ID'],
+					'comment_date'			=> $row['COMMENT_TIME'],
+					'comment_content'		=> $row['COMMENT_BODY'],
 					);
 				$this->lib->convertProfileComment($row['COMMENT_ID'], $save);
 			}

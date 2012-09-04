@@ -3,14 +3,14 @@
  * IPS Converters
  * Application Files
  * Library functions for IP.Gallery 3.0 conversions
- * Last Update: $Date: 2011-06-24 18:29:40 +0100 (Fri, 24 Jun 2011) $
+ * Last Update: $Date: 2011-06-08 17:23:21 -0400 (Wed, 08 Jun 2011) $
  * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 539 $
+ * @version		$Revision: 530 $
  */
 class lib_gallery extends lib_master
 {
@@ -25,9 +25,9 @@ class lib_gallery extends lib_master
 		return "<a href='{$this->settings['base_url']}&app=gallery&module=albums&section=manage&do=overview' target='_blank'>Click here</a> and confirm each albums Permissions and Settings are correct, then run the following Tools in the order specified.<br /><br />
 		
 		<ol>
-			<li>Rebuild Node Tree</li>
 			<li>Recount & Resync Albums</li>
 			<li>Rebuild Images</li>
+			<li>Rebuild Node Tree</li>
 		</ol><br />
 		
 		After that, <a href='{$this->settings['base_url']}&app=gallery&module=overview&section=settings' target='_blank'>click here</a> and turn the application back on.";
@@ -170,7 +170,6 @@ class lib_gallery extends lib_master
 				break;
 
 			case 'gallery_albums':
-			case 'gallery_categories':
 				return array( 'gallery_albums_main' => 'album_id' );
 				break;
 

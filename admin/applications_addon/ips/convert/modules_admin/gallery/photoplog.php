@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Gallery 3.0 Converters
  * Photopost
- * Last Update: $Date: 2011-07-12 21:15:48 +0100 (Tue, 12 Jul 2011) $
+ * Last Update: $Date: 2011-06-08 12:44:41 -0400 (Wed, 08 Jun 2011) $
  * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 550 $
+ * @version		$Revision: 529 $
  */
 
 
@@ -391,8 +391,8 @@
 
 				if ($row['avatar'])
 				{
-					$profile['photo_type'] = 'custom';
-					$profile['pp_main_photo'] = $row['avatar'];
+					$profile['avatar_type'] = 'upload';
+					$profile['avatar_location'] = $row['avatar'];
 					$path = $us['avvy_path'];
 				}
 

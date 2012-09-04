@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Blog 2.0 Converters
  * vBulletin
- * Last Update: $Date: 2011-06-30 16:09:07 +0100 (Thu, 30 Jun 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2010-03-19 11:03:12 +0100(ven, 19 mar 2010) $
+ * Last Updated By: $Author: terabyte $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 545 $
+ * @version		$Revision: 437 $
  */
 
 	$info = array(
@@ -18,16 +18,16 @@
 		'name'	=> 'vBulletin 4.0',
 		'login'	=> false,
 	);
-	
-	$parent = array('required' => true, 'choices' => array(
-		array('app' => 'board', 'key' => 'vbulletin', 'newdb' => false),
-		));
-	
+
+				$parent = array('required' => true, 'choices' => array(
+					array('app' => 'board', 'key' => 'vbulletin', 'newdb' => false),
+					));
+
 	class admin_convert_blog_vbulletin extends ipsCommand
 	{
-	
+
 		private $attachmentContentTypes = array();
-		
+
 		/**
 		 * Bitwise settings - Mod permissions
 		 *
@@ -45,7 +45,7 @@
 								   'can_view_ips'			=> 256,
 								   'can_edit_blocks'		=> 512,
 								   'can_edit_cats'			=> 1024 );
-		
+
 		/**
 	    * Main class entry point
 	    *
@@ -58,7 +58,7 @@
 			//-----------------------------------------
 			// What can this thing do?
 			//-----------------------------------------
-			
+
 			// array('action' => array('action that must be completed first'))
 			$this->actions = array(
 				'blog_blogs'	=> array('members', 'forum_perms'),
@@ -68,29 +68,29 @@
 				'blog_moderators' => array('members', 'groups'),
 				'blog_trackback' => array('blog_blogs', 'blog_entries')
 				);
-							
+
 			//-----------------------------------------
 	        // Load our libraries
 	        //-----------------------------------------
-			
+
 			require_once( IPS_ROOT_PATH . 'applications_addon/ips/convert/sources/lib_master.php' );
 			require_once( IPS_ROOT_PATH . 'applications_addon/ips/convert/sources/lib_blog.php' );
 			$this->lib =  new lib_blog( $registry, $html, $this );
-	
+
 	        $this->html = $this->lib->loadInterface();
 			$this->lib->sendHeader( 'vBulletin &rarr; IP.Blog Converter' );
-	
+
 			//-----------------------------------------
 			// Are we connected?
 			// (in the great circle of life...)
 			//-----------------------------------------
-			
+
 			$this->HB = $this->lib->connect();
 
 			//-----------------------------------------
 			// What are we doing?
 			//-----------------------------------------
-			
+
 			if (array_key_exists($this->request['do'], $this->actions))
 			{
 				call_user_func(array($this, 'convert_'.$this->request['do']));
@@ -107,7 +107,7 @@
 			$this->sendOutput();
 
 		}
-		
+
 		/**
 	    * Output to screen and exit
 	    *
@@ -121,7 +121,7 @@
 			$this->registry->output->sendOutput();
 			exit;
 		}
-		
+
 		/**
 		 * Count rows
 		 *
@@ -136,19 +136,19 @@
 				case 'blog_blogs':
 					return $this->lib->countRows('blog_user');
 					break;
-					
+
 				case 'blog_entries':
 					return $this->lib->countRows('blog');
 					break;
-					
+
 				case 'blog_comments':
 					return $this->lib->countRows('blog_text')-$this->lib->countRows('blog');
 					break;
-					
+
 				case 'blog_moderators':
 					return $this->lib->countRows('blog_moderator');
 					break;
-					
+
 				case 'blog_attachments':
 					$contenttype = ipsRegistry::DB ( 'hb' )->buildAndFetch ( array (
 						'select'	=> 'contenttypeid',
@@ -157,13 +157,13 @@
 					) );
 					return $this->lib->countRows('attachment', 'contenttypeid = ' . $contenttype['contenttypeid']);
 					break;
-						
+
 				default:
 					return $this->lib->countRows($action);
 					break;
 			}
 		}
-		
+
 		/**
 		 * Check if section has configuration options
 		 *
@@ -173,17 +173,9 @@
 		 **/
 		public function checkConf($action)
 		{
-			switch ( $action )
-			{
-				case 'blog_attachments':
-					return true;
-				break;
-				default:
-					return false;
-				break;
-			}
+			return false;
 		}
-		
+
 		/**
 		 * Fix post data
 		 *
@@ -195,14 +187,14 @@
 		{
 			// Sort out newlines
 			$post = nl2br($post);
-			
+
 			// And quote tags
 			$post = preg_replace("#\[quote=(.+);\d\]#i", "[quote name='$1']", $post);
 			$post = preg_replace("#\[quote=(.+)\](.+)\[/quote\]#i", "[quote name='$1']$2[/quote]", $post);
-						
+
 			return $post;
 		}
-				
+
 		/**
 		 * Convert Blogs
 		 *
@@ -214,30 +206,30 @@
 			//---------------------------
 			// Set up
 			//---------------------------
-			
+
 			$main = array(	'select' 	=> '*',
 							'from' 		=> 'blog_user',
 							'order'		=> 'bloguserid ASC',
 						);
-			
+
 			$loop = $this->lib->load('blog_blogs', $main, array('blog_tracker'));
-			
+
 			//-----------------------------------------
 			// Prepare for permissions conversion
 			//-----------------------------------------
-			
+
 			$this->lib->preparePermissions('blog');
-			
+
 			//---------------------------
 			// Loop
 			//---------------------------
-			
+
 			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 			{
 				//-----------------------------------------
 				// Handle permissions
 				//-----------------------------------------
-								
+
 				$private = 0;
 				if ($row['options_member'] == 0 or $row['options_member'] == 2)
 				{
@@ -248,16 +240,16 @@
 				{
 					$guests = 0;
 				}
-				
+
 				$perms = array();
 				$perms['view']				= '*';
 				$perms['owner_only']		= $private;
 				$perms['authorized_users']	= '';
-				
+
 				//-----------------------------------------
 				// Do the blog
 				//-----------------------------------------
-				
+
 				$save = array(
 					'member_id'			=> $row['bloguserid'],
 					'blog_name'			=> ($row['title'] == '') ? "Blog {$row['bloguserid']}" : $row['title'],
@@ -269,19 +261,19 @@
 					'blog_rating_count'	=> $row['ratingnum'],
 					'blog_settings'		=> 'a:11:{s:8:"viewmode";s:4:"list";s:8:"allowrss";s:1:"1";s:14:"allowtrackback";s:1:"1";s:13:"trackcomments";i:0;s:14:"entriesperpage";s:2:"10";s:15:"commentsperpage";s:2:"20";s:18:"allowguestcomments";i:1;s:13:"defaultstatus";s:5:"draft";s:9:"eopt_mode";s:8:"autohide";s:9:"hidedraft";i:0;s:14:"blockslocation";s:5:"right";}',
 					);
-				
+
 				$this->lib->convertBlog($row['bloguserid'], $save, $perms);
-				
+
 				//-----------------------------------------
 				// Subscriptions?
 				//-----------------------------------------
-				
+
 				$sub = array(	'select' 	=> '*',
 								'from' 		=> 'blog_subscribeuser',
 								'order'		=> 'blogsubscribeuserid ASC',
-								'where'		=> 'bloguserid='.$row['bloguserid']									
+								'where'		=> 'bloguserid='.$row['bloguserid']
 							);
-				
+
 				ipsRegistry::DB('hb')->build($sub);
 				ipsRegistry::DB('hb')->execute();
 				while ($tracker = ipsRegistry::DB('hb')->fetch())
@@ -292,12 +284,12 @@
 						);
 					$this->lib->convertTracker($tracker['blogsubscribeuserid'], $savetracker);
 				}
-												
+
 			}
-			
+
 			$this->lib->next();
 		}
-		
+
 		/**
 		 * Convert Entries
 		 *
@@ -309,7 +301,7 @@
 			//---------------------------
 			// Set up
 			//---------------------------
-			
+
 			$main = array(	'select' 	=> 'b.*',
 							'from' 		=> array('blog' => 'b'),
 							'order'		=> 'b.blogid ASC',
@@ -321,13 +313,13 @@
 												),
 											),
 						);
-			
+
 			$loop = $this->lib->load('blog_entries', $main);
-			
+
 			//-----------------------------------------
 			// We need to log text ids
 			//-----------------------------------------
-			
+
 			$get = unserialize($this->settings['conv_extra']);
 			$us = $get[$this->lib->app['name']];
 			if (!$this->request['st'])
@@ -335,11 +327,11 @@
 				$us['blog_text_ids'] = array();
 				IPSLib::updateSettings(array('conv_extra' => serialize($us)));
 			}
-			
+
 			//---------------------------
 			// Loop
 			//---------------------------
-			
+
 			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 			{
 				// Odd issue...
@@ -347,11 +339,11 @@
 				{
 					continue;
 				}
-				
+
 				//-----------------------------------------
 				// Has this been editted?
 				//-----------------------------------------
-				
+
 				$log = false;
 				ipsRegistry::DB('hb')->build(array('select' => '*', 'from' => 'blog_editlog', 'where' => "blogtextid={$row['blogtextid']}", 'order' => 'dateline ASC'));
 				ipsRegistry::DB('hb')->execute();
@@ -359,11 +351,11 @@
 				{
 					$log = $editlog;
 				}
-				
+
 				//-----------------------------------------
 				// Carry on
 				//-----------------------------------------
-				
+
 				$save = array(
 					'blog_id'					=> $row['bloguserid'],
 					'entry_author_id'			=> $row['userid'],
@@ -384,23 +376,23 @@
 					'entry_last_update'			=> ($log) ? $log['dateline'] : $row['dateline'],
 					);
 				$this->lib->convertEntry($row['blogid'], $save);
-				
+
 				//-----------------------------------------
 				// Save the entry ID so it's not confused with the comments
 				//-----------------------------------------
-				
+
 				$us['blog_text_ids'][] = $row['blogtextid'];
-				
+
 			}
-			
+
 			// Save entry ids
 			$get[$this->lib->app['name']] = $us;
 			IPSLib::updateSettings(array('conv_extra' => serialize($get)));
-			
+
 			// Next, please!
 			$this->lib->next();
 		}
-		
+
 		/**
 		 * Convert Comments
 		 *
@@ -412,41 +404,41 @@
 			//---------------------------
 			// Set up
 			//---------------------------
-			
+
 			$main = array(	'select' 	=> '*',
 							'from' 		=> 'blog_text',
 							'order'		=> 'blogtextid ASC',
 						);
-			
+
 			$loop = $this->lib->load('blog_comments', $main);
-			
+
 			//-----------------------------------------
 			// We need to log text ids
 			//-----------------------------------------
-			
+
 			$get = unserialize($this->settings['conv_extra']);
 			$us = $get[$this->lib->app['name']];
-			
+
 			//---------------------------
 			// Loop
 			//---------------------------
-			
+
 			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 			{
 				//-----------------------------------------
 				// Don't confuse entries with comments
 				// I know... trust Jelsoft to make this complicated
 				//-----------------------------------------
-				
+
 				if (in_array($row['blogtextid'], $us['blog_text_ids']))
 				{
 					continue;
 				}
-				
+
 				//-----------------------------------------
 				// Has this been editted?
 				//-----------------------------------------
-				
+
 				$log = false;
 				ipsRegistry::DB('hb')->build(array('select' => '*', 'from' => 'blog_editlog', 'where' => "blogtextid={$row['blogtextid']}", 'order' => 'dateline ASC'));
 				ipsRegistry::DB('hb')->execute();
@@ -454,11 +446,11 @@
 				{
 					$log = $editlog;
 				}
-				
+
 				//-----------------------------------------
 				// Carry on
 				//-----------------------------------------
-				
+
 				$save = array(
 					'entry_id'			=> $row['blogid'],
 					'member_id'			=> $row['userid'],
@@ -470,13 +462,13 @@
 					'comment_edit_name'	=> $log['username'],
 					'comment_text'		=> $this->fixPostData($row['pagetext']),
 					);
-				
-				$this->lib->convertComment($row['blogtextid'], $save);			
+
+				$this->lib->convertComment($row['blogtextid'], $save);
 			}
-			
+
 			$this->lib->next();
 		}
-				
+
 		/**
 		 * Convert Moderators
 		 *
@@ -488,18 +480,18 @@
 			//---------------------------
 			// Set up
 			//---------------------------
-			
+
 			$main = array(	'select' 	=> '*',
 							'from' 		=> 'blog_moderator',
 							'order'		=> 'blogmoderatorid ASC',
 						);
-			
+
 			$loop = $this->lib->load('blog_moderators', $main);
-			
+
 			//---------------------------
 			// Loop
 			//---------------------------
-			
+
 			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 			{
 				// Silly bitwise permissions
@@ -507,7 +499,7 @@
 				foreach( $this->MOD_PERM as $name => $bit ) {
 					$perms[ $name ] = ( $row['permissions'] & $bit ) ? 1 : 0;
 				}
-				
+
 				// Carry on
 				$save = array(
 					'moderate_type'					=> 'member',
@@ -524,12 +516,12 @@
 					'moderate_can_view_draft'		=> $perms['can_mod_entries'],
 					'moderate_can_pin'				=> $perms['can_mod_entries'],
 					);
-				$this->lib->convertModerator($row['blogmoderatorid'], $save);			
+				$this->lib->convertModerator($row['blogmoderatorid'], $save);
 			}
-			
+
 			$this->lib->next();
 		}
-				
+
 		/**
 		 * Convert Trackbacks
 		 *
@@ -541,18 +533,18 @@
 			//---------------------------
 			// Set up
 			//---------------------------
-			
+
 			$main = array(	'select' 	=> '*',
 							'from' 		=> 'blog_trackback',
 							'order'		=> 'blogtrackbackid ASC',
 						);
-			
+
 			$loop = $this->lib->load('blog_trackback', $main);
-			
+
 			//---------------------------
 			// Loop
 			//---------------------------
-			
+
 			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 			{
 				$save = array(
@@ -565,12 +557,12 @@
 					'trackback_date'		=> $row['dateline'],
 					'trackback_queued'		=> ($row['state'] == 'moderation') ? 1 : 0,
 					);
-				$this->lib->convertTrackback($row['blogtrackbackid'], $save);			
+				$this->lib->convertTrackback($row['blogtrackbackid'], $save);
 			}
-			
+
 			$this->lib->next();
 		}
-		
+
 		/**
 		 * Convert Attachments
 		 *
@@ -582,49 +574,49 @@
 			//-----------------------------------------
 			// Were we given more info?
 			//-----------------------------------------
-			
+
 			$this->lib->saveMoreInfo('attachments', array('attach_path'));
-			
+
 			//---------------------------
 			// Set up
 			//---------------------------
-			
+
 			$main = array(	'select' 	=> '*',
 							'from' 		=> 'attachment',
 							'order'		=> 'attachmentid ASC',
 						);
-						
+
 			$loop = $this->lib->load('blog_attachments', $main);
-			
+
 			//-----------------------------------------
 			// We need to know the path
 			//-----------------------------------------
-						
+
 			$this->lib->getMoreInfo('attachments', $loop, array('attach_path' => array('type' => 'text', 'label' => 'The path to the folder where attachments are saved (no trailing slash - if using database storage, enter "."):')), 'path');
-			
+
 			$get = unserialize($this->settings['conv_extra']);
 			$us = $get[$this->lib->app['name']];
 			$path = $us['attach_path'];
-						
+
 			//-----------------------------------------
 			// Check all is well
 			//-----------------------------------------
-			
+
 			if (!is_writable($this->settings['upload_dir']))
 			{
 				$this->lib->error('Your IP.Board upload path is not writeable. '.$this->settings['upload_dir']);
 			}
-			
+
 			//---------------------------
 			// Loop
 			//---------------------------
-			
+
 			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 			{
 				//-----------------------------------------
 				// Init
 				//-----------------------------------------
-				
+
 				$filedata = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => '*', 'from' => 'filedata', 'where' => "filedataid={$row['filedataid']}" ) );
 				if ( array_key_exists( $row['contenttypeid'], $this->attachmentContentTypes ) )
 				{
@@ -635,22 +627,22 @@
 					$contenttype = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => '*', 'from' => 'contenttype', 'where' => "contenttypeid={$row['contenttypeid']}" ) );
 					$this->attachmentContentTypes[ $row['contenttypeid'] ] = $contenttype;
 				}
-				
+
 				if ( $contenttype['class'] != 'BlogEntry' )
 				{
 					continue;
 				}
-				
+
 				// What's the mimetype?
 				$type = $this->DB->buildAndFetch( array( 'select' => '*', 'from' => 'attachments_type', 'where' => "atype_extension='{$filedata['extension']}'" ) );
-				
+
 				// Is this an image?
 				$image = false;
 				if (preg_match('/image/', $type['atype_mimetype']))
 				{
 					$image = true;
 				}
-				
+
 				$save = array(
 					'attach_ext'			=> $filedata['extension'],
 					'attach_file'			=> $row['filename'],
@@ -662,50 +654,50 @@
 					'attach_rel_id'			=> $row['contentid'],
 					'attach_rel_module'		=> 'blogentry',
 					);
-				
+
 				//-----------------------------------------
 				// Database
 				//-----------------------------------------
-				
+
 				if ($filedata['filedata'])
 				{
 					$save['attach_location'] = $row['filename'];
 					$save['data'] = $filedata['filedata'];
-						
+
 					$done = $this->lib->convertAttachment($row['attachmentid'], $save, '', true);
 				}
-				
+
 				//-----------------------------------------
 				// File storage
 				//-----------------------------------------
-				
+
 				else
 				{
 					if ($path == '.')
 					{
 						$this->lib->error('You entered "." for the path but you have some attachments in the file system');
 					}
-					
+
 					$save['attach_location'] = implode('/', preg_split('//', $row['userid'],  -1, PREG_SPLIT_NO_EMPTY));
 					$save['attach_location'] .= "/{$row['attachmentid']}.attach";
-						
+
 					$done = $this->lib->convertAttachment($row['attachmentid'], $save, $path);
 				}
-				
+
 				//-----------------------------------------
 				// Fix inline attachments
 				//-----------------------------------------
-				
+
 				if ($done === true)
 				{
 					$aid = $this->lib->getLink($row['attachmentid'], 'attachments');
 					$pid = $this->lib->getLink($save['attach_rel_id'], 'blog_entries');
 
 					$attachrow = $this->DB->buildAndFetch( array( 'select' => 'entry', 'from' => 'blog_entries', 'where' => "entry_id={$pid}" ) );
-										
+
 					$rawaid = $row['attachmentid'];
 					$update = preg_replace("/\[ATTACH\]".$rawaid."\[\/ATTACH\]/i", "[attachment={$aid}:{$save['attach_location']}]", $attachrow['post']);
-															
+
 					$this->DB->update('blog_entries', array('entry' => $update), "entry_id={$pid}");
 				}
 			}
@@ -713,6 +705,6 @@
 			$this->lib->next();
 
 		}
-												
+
 	}
 

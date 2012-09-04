@@ -3,13 +3,13 @@
  * IPS Converters
  * Application Files
  * Library functions for IP.Nexus 1.2 conversions
- * Last Update: $Date: 2011-06-27 23:48:37 +0100 (Mon, 27 Jun 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2011-11-28 22:52:11 +0000 (Mon, 28 Nov 2011) $
+ * Last Updated By: $Author: AlexHobbs $
  *
  * @package		IPS Converters
  * @author 		Andrew Millne / Ryan Ashbrook
  * @copyright	(c) 2011 Invision Power Services, Inc.
- * @version		$Revision: 543 $
+ * @version		$Revision: 603 $
  */
 
 class lib_nexus extends lib_master
@@ -363,6 +363,21 @@ class lib_nexus extends lib_master
 		unset ( $info['member_id'] );
 		$info['member_id'] = $this->getLink ( $id, 'members', FALSE, $this->useLocalLink );
 		
+		// Check we haven't merged a member
+		$existing = $this->DB->buildAndFetch(
+			array(
+				'select' 	=> 'member_id',
+				'from'		=> 'nexus_customers',
+				'where'		=> 'member_id=' . $info['member_id']
+			)
+		);
+		
+		if ( $existing['member_id'] )
+		{
+			$this->logError( $id, 'Member was merged in IP.Board conversion, skipping duplicate import..' );
+			return false;
+		}
+		
 		$this->DB->insert ( 'nexus_customers', $info );
 		//$inserted_id = $this->getInsertId ( );
 		
@@ -542,7 +557,7 @@ class lib_nexus extends lib_master
 		
 		if ( $info['p_group'] )
 		{
-			$info['p_group'] = $this->getLink ( $info['p_group'], 'nexus_package_groups' );
+			//$info['p_group'] = $this->getLink ( $info['p_group'], 'nexus_package_groups' );
 		}
 			
 		if ( $info['associable'] )
@@ -605,7 +620,7 @@ class lib_nexus extends lib_master
 			$discounts['usergroup'] = $newGroupDiscounts;
 		}
 		
-		$info['p_discounts'] = $discounts;
+		$info['p_discounts'] = serialize($discounts);
 			
 		// More SEO name stuff.
 		unset ( $info['p_seo_name'] );
@@ -720,6 +735,21 @@ class lib_nexus extends lib_master
 			
 		// Handle parents
 		$this->DB->update ( 'nexus_purchases', array ( 'ps_parent' => $inserted_id ), 'conv_ps_parent = \'' . $id . '\'' );
+		
+		$invoice = $this->DB->buildAndFetch( array( 'select' => 'i_total', 'from' => 'nexus_invoices', 'where' => 'i_id=' . $info['ps_original_invoice'] ) );
+		
+		// Handle transaction
+		$this->DB->insert( 'nexus_transactions',
+			array(
+				't_member'	=> $info['ps_member'],
+				't_invoice'		=> $info['ps_original_invoice'],
+				't_method'		=> 3,
+				't_gw_id'		=> 6,
+				't_status'		=> 'okay',
+				't_amount'		=> $invoice['i_total'],
+				't_date'		=> $info['ps_start']
+			)
+		);
 			
 		return true;
 	}

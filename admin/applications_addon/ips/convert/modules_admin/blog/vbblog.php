@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Blog 2.0 Converters
  * vBulletin Blog
- * Last Update: $Date: 2011-06-30 16:09:07 +0100 (Thu, 30 Jun 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2010-03-19 11:03:12 +0100(ven, 19 mar 2010) $
+ * Last Updated By: $Author: terabyte $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 545 $
+ * @version		$Revision: 437 $
  */
 
 	$info = array(
@@ -168,15 +168,7 @@
 		 **/
 		public function checkConf($action)
 		{
-			switch ( $action )
-			{
-				case 'blog_attachments':
-					return true;
-				break;
-				default:
-					return false;
-				break;
-			}
+			return false;
 		}
 		
 		/**

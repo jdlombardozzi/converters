@@ -241,8 +241,8 @@
 					break;
 					
 				case 'blog_tracker':
-					return array ( );
-				break;
+					return array( 'blog_tracker' => 'tracker_id' );
+					break;
 					
 				case 'blog_attachments':
 					return array( 'attachments' => 'attach_id' );
@@ -1197,14 +1197,7 @@
 			// Make sure we have everything we need
 			//-----------------------------------------
 			
-			$this->convertFollow ( array (
-				'like_app'			=> 'blog',
-				'like_area'			=> 'blog',
-				'like_rel_id'		=> $info['blog_id'],
-				'like_member_id'	=> $info['member_id'],
-			) );
-			
-			/*if (!$id)
+			if (!$id)
 			{
 				$this->logError($id, '(SUBSCRIPTION) No ID number provided');
 				return false;
@@ -1239,7 +1232,7 @@
 			// Add link
 			//-----------------------------------------
 			
-			$this->addLink($inserted_id, $id, 'blog_tracker');*/
+			$this->addLink($inserted_id, $id, 'blog_tracker');
 			
 			return true;
 		}

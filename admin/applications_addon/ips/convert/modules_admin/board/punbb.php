@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * phpBB
- * Last Update: $Date: 2011-07-12 21:15:48 +0100 (Tue, 12 Jul 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2010-03-19 11:03:12 +0100(ven, 19 mar 2010) $
+ * Last Updated By: $Author: terabyte $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 550 $
+ * @version		$Revision: 437 $
  */
 
 	$info = array(
@@ -462,10 +462,9 @@
 			
 					if ( file_exists($temp_path) && $imgSize = @getimagesize($temp_path) )
 					{
-						$profile['photo_type']		= 'custom';
-						$profile['photo_location']	= $row['id'].'.'.$cur_type;
-						$profile['pp_main_width']	= $imgSize[0];
-						$profile['pp_main_height']	= $imgSize[1];
+						$profile['avatar_type']		= 'upload';
+						$profile['avatar_location']	= $row['id'].'.'.$cur_type;
+						$profile['avatar_size']		= $imgSize[0].'x'.$imgSize[1];
 						$path = $us['pp_path'];
 						break;
 					}

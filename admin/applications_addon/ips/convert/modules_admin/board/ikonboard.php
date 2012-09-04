@@ -397,14 +397,14 @@ class admin_convert_board_ikonboard extends ipsCommand
 				// URL
 				if (preg_match('/http/', $row['avatar']))
 				{
-					$profile['photo_type'] = 'url';
-					$profile['photo_location'] = $row['MEMBER_AVATAR'];
+					$profile['avatar_type'] = 'url';
+					$profile['avatar_location'] = $row['MEMBER_AVATAR'];
 				}
 				// Gallery
 				else
 				{
-					$profile['photo_type'] = 'custom';
-					$profile['photo_location'] = $row['MEMBER_AVATAR'];
+					$profile['avatar_type'] = 'upload';
+					$profile['avatar_location'] = $row['MEMBER_AVATAR'];
 					$path = $us['avatar_path'];
 				}
 			

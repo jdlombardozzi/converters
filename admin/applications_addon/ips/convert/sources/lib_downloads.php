@@ -178,6 +178,10 @@
 					return array( 'downloads_downloads' => 'did' );
 					break;
 					
+				case 'downloads_favorites':
+					return array( 'downloads_favorites' => 'fid' );
+					break;
+					
 				case 'downloads_filebackup':
 					return array( 'downloads_filebackup' => 'b_id' );
 					break;
@@ -185,10 +189,6 @@
 				case 'downloads_mods':
 					return array( 'downloads_mods' => 'modid' );
 					break;
-				
-				case 'downloads_favorites':
-					return array ( );
-				break;
 									
 				default:
 					$this->error('There is a problem with the converter: bad truncate command');
@@ -603,8 +603,8 @@
 			//-----------------------------------------
 			
 			$info['file_cat'] = $this->getLink($info['file_cat'], 'downloads_categories');
-			//$info['file_mime'] = $this->getLink($info['file_mime'], 'downloads_mime');
-			//$info['file_ssmime'] = ($info['file_ssmime']) ? $this->getLink($info['file_ssmime'], 'downloads_mime') : 0;
+			$info['file_mime'] = $this->getLink($info['file_mime'], 'downloads_mime');
+			$info['file_ssmime'] = ($info['file_ssmime']) ? $this->getLink($info['file_ssmime'], 'downloads_mime') : 0;
 			$info['file_submitter'] = $this->getLink($info['file_submitter'], 'members', false, true);
 			$info['file_approver'] = ($info['file_approver']) ? $this->getLink($info['file_approver'], 'members', false, true) : 0;
 			$info['file_topicid'] = ($info['file_topicid']) ? $this->getLink($info['file_topicid'], 'topics') : 0;
@@ -618,9 +618,6 @@
 			unset($info['file_id']);
 			unset($info['data']);
 			unset($info['ssdata']);
-			unset($info['file_filename']);
-			unset($info['file_storagetype']);
-			unset($info['file_mime']);
 			$this->DB->insert( 'downloads_files', $info );
 			$inserted_id = $this->DB->getInsertId();
 			
@@ -845,14 +842,7 @@
 			// Make sure we have everything we need
 			//-----------------------------------------
 			
-			$this->convertFollow ( array (
-				'like_app'			=> 'downloads',
-				'like_area'			=> 'files',
-				'like_rel_id'		=> $info['ffid'],
-				'like_member_id'	=> $info['fmid'],
-			) );
-			
-			/*if (!$id)
+			if (!$id)
 			{
 				$this->logError($id, 'No ID number provided');
 				return false;
@@ -883,7 +873,7 @@
 			// Add link
 			//-----------------------------------------
 			
-			$this->addLink($inserted_id, $id, 'downloads_favorites');*/
+			$this->addLink($inserted_id, $id, 'downloads_favorites');
 			
 			return true;
 		}

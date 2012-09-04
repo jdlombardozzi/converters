@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * vBulletin
- * Last Update: $Date: 2011-07-27 20:43:43 +0100 (Wed, 27 Jul 2011) $
- * Last Updated By: $Author: AlexHobbs $
+ * Last Update: $Date: 2011-06-08 12:44:41 -0400 (Wed, 08 Jun 2011) $
+ * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 567 $
+ * @version		$Revision: 529 $
  */
 
 
@@ -526,7 +526,7 @@
 				'homepage'		=> 'Website',
 				);
 
-			$this->lib->saveMoreInfo( 'members', array_merge( array_keys($pcpf), array( /*'avvy_path',*/ 'pp_path', 'pp_type' ) ) );
+			$this->lib->saveMoreInfo( 'members', array_merge( array_keys($pcpf), array( 'avvy_path', 'pp_path' ) ) );
 
 			//---------------------------
 			// Set up
@@ -561,9 +561,8 @@
 			$ask = array();
 
 			// We need to know the avatars path
-			//$ask['avvy_path'] = array('type' => 'text', 'label' => 'The path to the folder where custom avatars are saved (no trailing slash - usually /path_to_vb/customavatars):');
-			$ask['pp_path'] = array('type' => 'text', 'label' => 'The path to the folder where your custom profile pictures/avatars are saved (no trailing slash - usually /path_to_vb/customprofilepics or /path_to_vb/customavatars):');
-			$ask['pp_type'] = array ( 'type' => 'dropdown', 'label' => 'The Member Photo type to convert?', 'options' => array ( 'avatar' => 'Avatars', 'profile' => 'Profile Pictures' ) );
+			$ask['avvy_path'] = array('type' => 'text', 'label' => 'The path to the folder where custom avatars are saved (no trailing slash - usually /path_to_vb/customavatars):');
+			$ask['pp_path'] = array('type' => 'text', 'label' => 'The path to the folder where custom profile pictures are saved (no trailing slash - usually /path_to_vb/customprofilepics):');
 
 			// And those custom profile fields
 			$options = array('x' => '-Skip-');
@@ -730,55 +729,50 @@
 				//-----------------------------------------
 				// Avatars and profile pictures
 				//-----------------------------------------
-				$profile['photo_type'] = 'custom';
-				if ( $us['pp_type'] == 'avatar' )
+
+				$customavatar = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => '*', 'from' => 'customavatar', 'where' => "userid='{$row['userid']}'" ) );
+				if ($customavatar)
 				{
-					$customavatar = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => '*', 'from' => 'customavatar', 'where' => "userid='{$row['userid']}'" ) );
-					if ($customavatar)
+					$profile['avatar_type'] = 'upload';
+					$profile['avatar_location'] = $customavatar['filename'];
+
+					if ($customavatar['filedata'])
 					{
-						$profile['pp_main_photo'] = $customavatar['filename'];
-	
-						if ($customavatar['filedata'])
-						{
-							$profile['photo_data'] = $customavatar['filedata'];
-						}
-						else
-						{
-							$profile['pp_main_photo'] = "avatar{$customavatar['userid']}_{$row['avatarrevision']}.gif";
-						}
-						
-						$profile['pp_main_width'] = $customavatar['width'];
-						$profile['pp_main_height'] = $customavatar['height'];
-						$profile['photo_filesize'] = $customavatar['filesize'];
+						$profile['avatar_data'] = $customavatar['filedata'];
 					}
+					else
+					{
+						$profile['avatar_location'] = "avatar{$customavatar['userid']}_{$row['avatarrevision']}.gif";
+					}
+
+					$profile['avatar_size'] = $customavatar['width'].'x'.$customavatar['height'];
+					$profile['avatar_filesize'] = $customavatar['filesize'];
 				}
-				else
+
+				$customprofilepic = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => '*', 'from' => 'customprofilepic', 'where' => "userid='{$row['userid']}'" ) );
+				if ($customprofilepic)
 				{
-					$customprofilepic = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => '*', 'from' => 'customprofilepic', 'where' => "userid='{$row['userid']}'" ) );
-					if ($customprofilepic)
+					$profile['pp_main_photo'] = $customprofilepic['filename'];
+
+					if ($customprofilepic['filedata'])
 					{
-						$profile['pp_main_photo'] = $customprofilepic['filename'];
-	
-						if ($customprofilepic['filedata'])
-						{
-							$profile['photo_data'] = $customprofilepic['filedata'];
-						}
-						else
-						{
-							$profile['pp_main_photo'] = "profilepic{$customprofilepic['userid']}_{$row['profilepicrevision']}.gif";
-						}
-	
-						$profile['pp_main_width'] = $customprofilepic['width'];
-						$profile['pp_main_height'] = $customprofilepic['height'];
-						$profile['photo_filesize'] = $customprofilepic['filesize'];
+						$profile['photo_data'] = $customprofilepic['filedata'];
 					}
+					else
+					{
+						$profile['pp_main_photo'] = "profilepic{$customprofilepic['userid']}_{$row['profilepicrevision']}.gif";
+					}
+
+					$profile['pp_main_width'] = $customprofilepic['width'];
+					$profile['pp_main_height'] = $customprofilepic['height'];
+					$profile['photo_filesize'] = $customprofilepic['filesize'];
 				}
 
 				//-----------------------------------------
 				// Go
 				//-----------------------------------------
 
-				$this->lib->convertMember($info, $members, $profile, $custom, $us['pp_path']);
+				$this->lib->convertMember($info, $members, $profile, $custom, $us['avvy_path'], $us['pp_path']);
 
 			}
 
@@ -1065,7 +1059,6 @@
 							   'post'		 	=> $this->fixPostData($row['pagetext']),
 							   'queued'      	=> $row['visible'] == 2 ? 2 : 0,
 							   'topic_id'    	=> $row['threadid'],
-							   'post_title'  	=> $row['title'],
 							   'rep_points'	=> $rep );
 
 				$this->lib->convertPost($row['postid'], $save);
@@ -1410,12 +1403,6 @@
 				{
 					$image = true;
 				}
-				
-				// Need to grab the topic ID
-				$topicid = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => 'threadid', 'from' => 'post', 'where' => "postid='" . intval( $row['contentid'] ) . "'" ) );
-				
-				// Grab our real id
-				$ipbTopic	= $this->lib->getLink( $topicid['threadid'], 'topics' );
 
 				$save = array(
 					'attach_ext'			=> $filedata['extension'],
@@ -1427,19 +1414,11 @@
 					'attach_filesize'		=> $filedata['filesize'],
 					'attach_rel_id'			=> $row['contentid'],
 					'attach_rel_module'		=> 'post',
-					'attach_parent_id'		=> $ipbTopic
 					);
 
 				//-----------------------------------------
 				// Database
 				//-----------------------------------------
-
-				if ( !$row['filedata'] && $path == '.' )
-				{
-					// Race issue... seen it a couple times, the file data is lost but the row still exists.
-					$this->lib->logError ( $row['attachmentid'], 'No File Data' );
-					continue;
-				}
 
 				if ($filedata['filedata'])
 				{
@@ -1455,10 +1434,10 @@
 
 				else
 				{
-					/*if ($path == '.')
+					if ($path == '.')
 					{
 						$this->lib->error('You entered "." for the path but you have some attachments in the file system');
-					}*/
+					}
 
 					$tmpPath = '/' . implode('/', preg_split('//', $filedata['userid'],  -1, PREG_SPLIT_NO_EMPTY));
 					$save['attach_location'] = "{$row['filedataid']}.attach";
@@ -2045,12 +2024,12 @@
 			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 			{
 				$save = array(
-					'status_member_id'	=> $row['userid'],
-					'status_author_id'	=> $row['postuserid'],
-					'status_date'		=> $row['dateline'],
-					'status_author_ip'	=> $row['ipaddress'],
-					'status_content'	=> $row['pagetext'],
-					'status_approved'	=> ($row['state'] == 'visible') ? 1 : 0,
+					'comment_for_member_id'	=> $row['userid'],
+					'comment_by_member_id'	=> $row['postuserid'],
+					'comment_date'			=> $row['dateline'],
+					'comment_ip_address'	=> $row['ipaddress'],
+					'comment_content'		=> $row['pagetext'],
+					'comment_approved'		=> ($row['state'] == 'visible') ? 1 : 0,
 					);
 				$this->lib->convertProfileComment($row['vmid'], $save);
 			}

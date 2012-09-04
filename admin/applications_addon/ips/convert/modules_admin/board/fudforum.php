@@ -3,8 +3,8 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * FudForum
- * Last Update: $Date: 2011-07-12 21:15:48 +0100 (Tue, 12 Jul 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2010-03-19 11:03:12 +0100(ven, 19 mar 2010) $
+ * Last Updated By: $Author: Andy Millne $
  *
  * @package		IPS Converters
  * @author 		Andy Millne
@@ -443,8 +443,8 @@
 				$avatar_parsed = parse_url($avatar_url, PHP_URL_PATH);
 				
 				if($row['avatar_loc']) {
-					$profile['photo_type'] = 'custom';
-					$profile['photo_location'] = $avatar_parsed;
+					$profile['avatar_type'] = 'upload';
+					$profile['avatar_location'] = $avatar_parsed;
 					$path = $us['pp_path'];
 				}
 
@@ -756,8 +756,7 @@
 					'post_date'   => $row['post_stamp'],
 					'post'		  => $this->fixPostData($post),
 					'queued'      => $row['apr'] == 1 ? 0 : 1,
-					'topic_id'    => $row['thread_id'],
-					'post_title'  => $row['subject'],
+					'topic_id'    => $row['thread_id']
 					);
 
 				$this->lib->convertPost($row['id'], $save);

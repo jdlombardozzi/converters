@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Gallery 3.0 Converters
  * Photopost
- * Last Update: $Date: 2011-07-29 13:03:04 +0100 (Fri, 29 Jul 2011) $
- * Last Updated By: $Author: AlexHobbs $
+ * Last Update: $Date: 2011-06-08 12:44:41 -0400 (Wed, 08 Jun 2011) $
+ * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 568 $
+ * @version		$Revision: 529 $
  */
 
 
@@ -63,9 +63,9 @@
 			}
 
 			$forAll = array(
-				//'gallery_categories'	=> array('members'),
-				'gallery_albums'		=> array('members'),
-				'gallery_images'		=> array('members', 'gallery_albums'),
+				'gallery_categories'	=> array('members'),
+				'gallery_albums'		=> array('members', 'gallery_categories'),
+				'gallery_images'		=> array('members', 'gallery_categories', 'gallery_albums'),
 				'gallery_comments'		=> array('members', 'gallery_images'),
 				//'gallery_ecardlog'		=> array('gallery_images', 'members'),
 				);
@@ -94,7 +94,7 @@
 			// What are we doing?
 			//-----------------------------------------
 
-			if (array_key_exists($this->request['do'], $this->actions) || $this->request['do'] == 'albums2' )
+			if (array_key_exists($this->request['do'], $this->actions))
 			{
 				call_user_func(array($this, 'convert_'.$this->request['do']));
 			}
@@ -145,12 +145,12 @@
 					return $this->lib->countRows('users');
 					break;
 
-				/*case 'gallery_categories':
+				case 'gallery_categories':
 					return $this->lib->countRows('categories', "cattype='c'");
-					break;*/
+					break;
 
 				case 'gallery_albums':
-					return $this->lib->countRows('categories');
+					return $this->lib->countRows('categories', "cattype='a'");
 					break;
 
 				case 'gallery_images':
@@ -412,8 +412,8 @@
 
 				if ($row['avatar'])
 				{
-					$profile['photo_type'] = 'custom';
-					$profile['pp_main_photo'] = $row['avatar'];
+					$profile['avatar_type'] = 'upload';
+					$profile['avatar_location'] = $row['avatar'];
 					$path = $us['avvy_path'];
 				}
 
@@ -447,7 +447,7 @@
 		 *
 		 * @access	private
 		 * @return void
-		 **
+		 **/
 		private function convert_gallery_categories()
 		{
 
@@ -510,7 +510,7 @@
 
 			$this->lib->next();
 
-		}*/
+		}
 
 		/**
 		 * Work out the permissions column
@@ -570,6 +570,7 @@
 
 			$main = array(	'select' 	=> '*',
 							'from' 		=> 'categories',
+							'where'		=> "cattype='a'",
 							'order'		=> 'id ASC',
 						);
 
@@ -591,18 +592,6 @@
 
 			$get = unserialize($this->settings['conv_extra']);
 			$us = $get[$this->lib->app['name']];
-			
-			//-----------------------------------------
-			// Get remote groups
-			//-----------------------------------------
-
-			$groups = array();
-			ipsRegistry::DB('hb')->build( array( 'select' => '*', 'from' => 'usergroups' ) );
-			$gp = ipsRegistry::DB('hb')->execute();
-			while ( $row = ipsRegistry::DB('hb')->fetch($gp) )
-			{
-				$groups[] = $row['groupid'];
-			}
 
 			//---------------------------
 			// Loop
@@ -610,34 +599,13 @@
 
 			while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 			{
-				$perms = array();
-				$perms['album_g_perms_view']		= $this->_populatePerms($row, $groups, 'view');
-				$perms['album_g_perms_images']		= $this->_populatePerms($row, $groups, 'upload');
-				$perms['album_g_perms_comments']	= $this->_populatePerms($row, $groups, 'comment');
-				//$perms['album_g_perms_moderate']	= $this->_populatePerms ( $row, $groups, 'moderate' );
-
-				if ( $row['intro'] == 'yes' )
-				{
-					$rules = serialize ( array (
-						'title'	=> $row['introtitle'],
-						'text'	=> $row['introcopy'],
-					) );
-				}
-
 				$save = array(
-					'album_parent_id'			=> ( $row['parent'] ? $row['parent'] : $us['orphans'] ),
-					'album_name'				=> $row['catname'],
-					'album_description'			=> $row['description'],
-					'album_g_password'			=> $row['password'],
-					'album_g_rules'				=> $rules,
-					'album_is_global'			=> ( $row['cattype'] == 'c' ? 1 : 0 ),
-					'album_g_container_only'	=> 0,
-                    'album_owner_id'            => $row['catuserid'],
-                    'album_is_public'           => ($row['private'] == 'yes') ? 0 : 1,
+					'album_owner_id'	=> $row['parent'],
+					'album_is_public'	=> ($row['private'] == 'yes') ? 0 : 1,
+					'album_name'		=> $row['catname'],
+					'album_parent_id'	=> $us['orphans'],
 				);
-				
-				$save = array_merge( $save, $perms );
-                
+
 				$this->lib->convertAlbum($row['id'], $save, array ( ), true);
 			}
 
@@ -713,7 +681,7 @@
 				// Basic info
 				$save = array(
 					'member_id'			=> $row['userid'],
-					'img_album_id'		=> $row['cat'],
+					'album_id'			=> ( $this->lib->getLink($row['cat'], 'gallery_albums', true) ) ? $row['cat'] : 0,
 					'caption'			=> $row['title'],
 					'description'		=> $row['description'],
 					'directory'			=> $row['cat'],

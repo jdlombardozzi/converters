@@ -3,14 +3,14 @@
  * IPS Converters
  * Application Files
  * Library functions for IP.Calendar 3.0 conversions
- * Last Update: $Date: 2011-07-12 19:47:24 +0100 (Tue, 12 Jul 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2009-11-25 18:32:33 +0100(mer, 25 nov 2009) $
+ * Last Updated By: $Author: terabyte $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 549 $
+ * @version		$Revision: 392 $
  */
 
 	class lib_calendar extends lib_master
@@ -60,36 +60,6 @@
 						'conf'	=> false,
 					);
 					break;
-				
-				case 'cal_event_comments':
-					$count	= $this->DB->buildAndFetch ( array ( 'select' => 'COUNT(*) as count', 'from' => 'cal_event_comments' ) );
-					$return	= array (
-						'name'	=> 'Event Comments',
-						'rows'	=> $count['count'],
-						'cycle'	=> 1500,
-						'conf'	=> false,
-					);
-				break;
-				
-				case 'cal_event_ratings':
-					$count	= $this->DB->buildAndFetch ( array ( 'select' => 'COUNT(*) as count', 'from' => 'cal_event_ratings' ) );
-					$return	= array (
-						'name'	=> 'Event Ratings',
-						'rows'	=> $count['count'],
-						'cycle'	=> 2000,
-						'conf'	=> false,
-					);
-				break;
-				
-				case 'cal_event_rsvp':
-					$count	= $this->DB->buildAndFetch ( array ( 'select' => 'COUNT(*) as count', 'from' => 'cal_event_rsvp' ) );
-					$return	= array (
-						'name'	=> 'Event RSVP',
-						'rows'	=> $count['count'],
-						'cycle'	=> 2000,
-						'conf'	=> false,
-					);
-				break;
 												
 				default:
 					if ($return)
@@ -122,18 +92,6 @@
 				case 'cal_events':
 					return array( 'cal_events' => 'event_id' );
 					break;
-				
-				case 'cal_event_comments':
-					return array ( 'cal_event_comments' => 'comment_id' );
-				break;
-				
-				case 'cal_event_ratings':
-					return array ( 'cal_event_ratings' => 'rating_id' );
-				break;
-				
-				case 'cal_event_rsvp':
-					return array ( 'cal_event_rsvp' => 'rsvp_id' );
-				break;
 									
 				default:
 					$this->error('There is a problem with the converter: bad truncate command');
@@ -192,7 +150,6 @@
 				$this->logError($id, 'No ID number provided');
 				return false;
 			}
-			
 			if (!$info['cal_title'])
 			{
 				$this->logError($id, 'No title provided');
@@ -264,28 +221,9 @@
 				$this->logError($id, 'No ID number provided');
 				return false;
 			}
-			
 			if (!$info['event_title'])
 			{
 				$this->logError($id, 'No title provided');
-				return false;
-			}
-			
-			if ( !$info['event_content'] )
-			{
-				$this->logError ( $id, 'No content provided.' );
-				return false;
-			}
-			
-			if ( !$info['event_calendar_id'] )
-			{
-				$this->logError ( $id, 'No Calendar ID provided.' );
-				return false;
-			}
-			
-			if ( !$info['event_member_id'] )
-			{
-				$this->logError ( $id, 'No Member ID provided.' );
 				return false;
 			}
 
@@ -305,138 +243,6 @@
 			//-----------------------------------------
 			
 			$this->addLink($inserted_id, $id, 'cal_events');
-			
-			return true;
-		}
-
-		/**
-		 * Convert an event comment
-		 * 
-		 * @access	public
-		 * @param	integer		Foreign ID Number
-		 * @param	array		Data to insert
-		 * @return	boolean		Success or fail
-		 */
-		public function convertEventComment ( $id, $info )
-		{
-			if ( !$id )
-			{
-				$this->logError ( $id, 'No ID provided.' );
-				return false;
-			}
-			
-			if ( !$info['comment_eid'] )
-			{
-				$this->logError ( $id, 'No Event ID provided.' );
-				return false;
-			}
-			
-			if ( !$info['comment_mid'] )
-			{
-				$this->logError ( $id, 'No Member ID provided.' );
-				return false;
-			}
-			
-			if ( !$info['comment_text'] )
-			{
-				$this->logError ( $id, 'No Comment text provided.' );
-				return false;
-			}
-			
-			$info['comment_eid'] = $this->getLink ( $info['comment_eid'], 'cal_events' );
-			$info['comment_mid'] = $this->getLink ( $info['comment_mid'], 'members', false, true );
-			
-			unset ( $info['comment_id'] );
-			$this->DB->insert ( 'cal_event_comments', $info );
-			$inserted_id = $this->DB->getInsertId ( );
-			
-			$this->addLink ( $inserted_id, $id, 'cal_event_comments' );
-			
-			return true;
-		}
-		
-		/**
-		 * Convert an event rating.
-		 * 
-		 * @access	public
-		 * @param	integer		Foreign ID Number
-		 * @param	array		Data to insert
-		 * @return	boolean		Success or fail
-		 */
-		public function convertEventRating ( $id, $info )
-		{
-			if ( !$id )
-			{
-				$this->logError ( $id, '(RATING) No ID Provided.' );
-				return false;
-			}
-			
-			if ( !$info['rating_eid'] )
-			{
-				$this->logError ( $id, '(RATING) No Event ID provided.' );
-				return false;
-			}
-			
-			if ( !$info['rating_member_id'] )
-			{
-				$this->logError ( $id, '(RATING) No Member ID provided.' );
-				return false;
-			}
-			
-			if ( !$info['rating_value'] )
-			{
-				$this->logError ( $id, '(RATING) No Rating provided.' );
-				return false;
-			}
-			
-			$info['rating_eid']			= $this->getLink ( $info['rating_eid'], 'cal_events' );
-			$info['rating_member_id']	= $this->getLink ( $info['rating_member_id'], 'members', false, true );
-			
-			unset ( $info['rating_id'] );
-			$this->DB->insert ( 'cal_event_ratings', $info );
-			$inserted_id = $this->DB->getInsertId ( );
-			
-			$this->addLink ( $inserted_id, $id, 'cal_event_ratings' );
-			
-			return true;
-		}
-		
-		/**
-		 * Convert an event rsvp.
-		 * 
-		 * @access	public
-		 * @param	integer		Foreign ID number
-		 * @param	array		Data to insert
-		 * @return	boolean
-		 */
-		public function convertEventRsvp ( $id, $info )
-		{
-			if ( !$id )
-			{
-				$this->logError ( $id, 'No ID provided.' );
-				return false;
-			}
-			
-			if ( !$info['rsvp_event_id'] )
-			{
-				$this->logError ( $id, 'No Event ID provided.' );
-				return false;
-			}
-			
-			if ( !$info['rsvp_member_id'] )
-			{
-				$this->logError ( $id, 'No Member ID provided.' );
-				return false;
-			}
-			
-			$info['rsvp_event_id']	= $this->getLink ( $info['rsvp_event_id'], 'cal_events' );
-			$info['rsvp_member_id']	= $this->getLink ( $info['rsvp_member_id'], 'members', false, true );
-			
-			unset ( $info['rsvp_id'] );
-			$this->DB->insert ( 'cal_event_rsvp', $info );
-			$inserted_id = $this->DB->getInsertId ( );
-			
-			$this->addLink ( $inserted_id, $id, 'cal_event_rsvp' );
 			
 			return true;
 		}

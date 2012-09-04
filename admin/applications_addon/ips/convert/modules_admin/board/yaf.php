@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * Woltlab Burning Board
- * Last Update: $Date: 2011-07-12 21:15:48 +0100 (Tue, 12 Jul 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2009-11-25 16:43:59 +0100(mer, 25 nov 2009) $
+ * Last Updated By: $Author: mark $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 550 $
+ * @version		$Revision: 391 $
  */
 
 $info = array( 'key'	=> 'yaf',
@@ -400,22 +400,22 @@ class admin_convert_board_yaf extends ipsCommand
 
 			// Profile
 			$profile = array( 'signature'			=> $this->fixPostData($row['Signature']),
-							  'photo_type' => $row['Avatar'] ? 'url' : '',
-							  'photo_location' => $row['Avatar'] ? $row['Avatar'] : '' );
+							  'avatar_type' => $row['Avatar'] ? 'url' : '',
+							  'avatar_location' => $row['Avatar'] ? $row['Avatar'] : '' );
 
 			//-----------------------------------------
 			// Avatars
 			//-----------------------------------------
 			if ($row['Avatar'])
 			{
-				$profile['photo_type'] = 'url';
-				$profile['photo_location'] = $row['Avatar'];
+				$profile['avatar_type'] = 'url';
+				$profile['avatar_location'] = $row['Avatar'];
 			} elseif ( $row['AvatarImage'] )
 			{
-				$profile['photo_type'] = 'custom';
-				$profile['photo_location'] = 'av-conv-' . $row['UserID'] . '.' . str_ireplace('image/', '', $row['AvatarImageType']);
-				$profile['photo_data'] = $row['AvatarImage'];
-				$profile['photo_filesize'] = strlen($row['AvatarImage']);
+				$profile['avatar_type'] = 'upload';
+				$profile['avatar_location'] = 'av-conv-' . $row['UserID'] . '.' . str_ireplace('image/', '', $row['AvatarImageType']);
+				$profile['avatar_data'] = $row['AvatarImage'];
+				$profile['avatar_filesize'] = strlen($row['AvatarImage']);
 				//$profile['avatar_size'] = $customavatar['width'].'x'.$customavatar['height'];
 			}
 

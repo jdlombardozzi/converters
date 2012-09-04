@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * phpBB
- * Last Update: $Date: 2011-07-12 21:15:48 +0100 (Tue, 12 Jul 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2010-03-19 11:03:12 +0100(ven, 19 mar 2010) $
+ * Last Updated By: $Author: terabyte $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 550 $
+ * @version		$Revision: 437 $
  */
 
 	$info = array(
@@ -614,27 +614,24 @@
 				if ($row['user_avatar_type'] == 1)
 				{
 					$ex	= substr(strrchr($row['user_avatar'], '.'), 1);
-					$profile['photo_type'] = 'custom';
-					$profile['photo_location'] = $us['avatar_salt'].'_'.$row['user_id'].'.'.$ex;
-					$profile['pp_main_width'] = $row['user_avatar_width'];
-					$profile['pp_main_height'] = $row['user_avatar_height'];
+					$profile['avatar_type'] = 'upload';
+					$profile['avatar_location'] = $us['avatar_salt'].'_'.$row['user_id'].'.'.$ex;
+					$profile['avatar_size'] = $row['user_avatar_width'].'x'.$row['user_avatar_height'];
 					$path = $us['pp_path'];
 				}
 				// URL
 				elseif ($row['user_avatar_type'] == 2)
 				{
-					$profile['photo_type'] = 'url';
-					$profile['photo_location'] = $row['user_avatar'];
-					$profile['pp_main_width'] = $row['user_avatar_width'];
-					$profile['pp_main_height'] = $row['user_avatar_height'];
+					$profile['avatar_type'] = 'url';
+					$profile['avatar_location'] = $row['user_avatar'];
+					$profile['avatar_size'] = $row['user_avatar_width'].'x'.$row['user_avatar_height'];
 				}
 				// Gallery
 				elseif ($row['user_avatar_type'] == 3)
 				{
-					$profile['photo_type'] = 'custom';
-					$profile['photo_location'] = $row['user_avatar'];
-					$profile['pp_main_width'] = $row['user_avatar_width'];
-					$profile['pp_main_height'] = $row['user_avatar_height'];
+					$profile['avatar_type'] = 'upload';
+					$profile['avatar_location'] = $row['user_avatar'];
+					$profile['avatar_size'] = $row['user_avatar_width'].'x'.$row['user_avatar_height'];
 					$path = $us['gal_path'];
 				}
 
@@ -908,8 +905,7 @@
 					'post_date'   => $row['post_time'],
 					'post'		  => $this->fixPostData($row['post_text']),
 					'queued'      => $row['post_approved'] == 1 ? 0 : 1,
-					'topic_id'    => $row['topic_id'],
-					'post_title'  => $row['post_subject'],
+					'topic_id'    => $row['topic_id']
 					);
 
 				$this->lib->convertPost($row['post_id'], $save);

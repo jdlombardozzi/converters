@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * Woltlab Burning Board
- * Last Update: $Date: 2011-07-12 21:15:48 +0100 (Tue, 12 Jul 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2009-11-25 16:43:59 +0100(mer, 25 nov 2009) $
+ * Last Updated By: $Author: mark $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 550 $
+ * @version		$Revision: 391 $
  */
 
 $info = array(
@@ -565,8 +565,8 @@ class admin_convert_board_wowbb extends ipsCommand
 			{
 				$splitPos = strrpos( $row['user_avatar'], '/');
 				$path = $path . '/' . substr($row['user_avatar'], 0, $splitPos);
-				$profile['pp_main_photo'] = substr($row['user_avatar'], $splitPos + 1);
-				$profile['photo_type'] = 'custom';
+				$profile['avatar_location'] = substr($row['user_avatar'], $splitPos + 1);
+				$profile['avatar_type'] = 'upload';
 			}
 
 			//-----------------------------------------

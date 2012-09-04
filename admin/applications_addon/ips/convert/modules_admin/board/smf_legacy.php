@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * SMF LEGACY (SMF 1.1)
- * Last Update: $Date: 2011-07-12 21:15:48 +0100 (Tue, 12 Jul 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: $
+ * Last Updated By: $Author: $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 550 $
+ * @version		$Revision: $
  */
 
 /*
@@ -445,14 +445,14 @@ class admin_convert_board_smf_legacy extends ipsCommand
 				// URL
 				if (preg_match('/http/', $row['avatar']))
 				{
-					$profile['photo_type'] = 'url';
-					$profile['photo_location'] = $row['avatar'];
+					$profile['avatar_type'] = 'url';
+					$profile['avatar_location'] = $row['avatar'];
 				}
 				// Gallery
 				else
 				{
-					$profile['photo_type'] = 'custom';
-					$profile['photo_location'] = $row['avatar'];
+					$profile['avatar_type'] = 'upload';
+					$profile['avatar_location'] = $row['avatar'];
 					$path = $us['gal_path'];
 				}
 			}
@@ -462,8 +462,8 @@ class admin_convert_board_smf_legacy extends ipsCommand
 				$attach = ipsRegistry::DB('hb')->buildAndFetch(array(	'select' => '*', 'from' => $this->prefixFull . 'attachments', 'where' => 'ID_MEMBER='.$row['ID_MEMBER']));
 				if ($attach)
 				{
-					$profile['photo_type'] = 'custom';
-					$profile['photo_location'] = str_replace(' ', '_', $attach['filename']);
+					$profile['avatar_type'] = 'upload';
+					$profile['avatar_location'] = str_replace(' ', '_', $attach['filename']);
 					$path = $us['attach_path'];
 				}
 			}

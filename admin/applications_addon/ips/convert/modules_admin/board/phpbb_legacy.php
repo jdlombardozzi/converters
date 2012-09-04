@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * phpBB
- * Last Update: $Date: 2011-07-12 21:15:48 +0100 (Tue, 12 Jul 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2009-12-04 11:37:12 +0100(ven, 04 dic 2009) $
+ * Last Updated By: $Author: terabyte $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 550 $
+ * @version		$Revision: 396 $
  */
 
 $info = array(
@@ -22,7 +22,7 @@ $info = array(
 class admin_convert_board_phpbb_legacy extends ipsCommand
 {
 	private $nukedPrefix = '';
-	private $nuked = FALSE;
+	private $nuked = false;
 
 	/**
 	* Main class entry point
@@ -137,7 +137,7 @@ class admin_convert_board_phpbb_legacy extends ipsCommand
 		switch ($action)
 		{
 			case 'members':
-				return  $this->lib->countRows($this->nukedPrefix . 'users', 'user_active<>0');
+				return  $this->lib->countRows('users', 'user_active<>0');
 				break;
 
 			case 'polls':
@@ -373,7 +373,7 @@ class admin_convert_board_phpbb_legacy extends ipsCommand
 		// Set up
 		//---------------------------
 		$main = array(	'select' 	=> 'phpbb.*',
-						'from' 		=> array( $this->nukedPrefix . 'users' => 'phpbb' ),
+						'from' 		=> array( 'users' => 'phpbb' ),
 						'order'		=> 'phpbb.user_id ASC',
 						'where'		=> 'phpbb.user_active=1' );
 
@@ -422,7 +422,6 @@ class admin_convert_board_phpbb_legacy extends ipsCommand
 		//---------------------------
 		while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 		{
-
 			//-----------------------------------------
 			// Set info
 			//-----------------------------------------
@@ -467,7 +466,6 @@ class admin_convert_board_phpbb_legacy extends ipsCommand
 				//'title'				=> $rank['rank_title'],
 				'email_pm'      	=> $row['user_notify_pm'],
 				'members_disable_pm'=> ($row['user_allow_pm'] == 1) ? 0 : 1,
-				'hide_email' 		=> $row['user_viewemail'] ? 0 : 1,
 				'allow_admin_mails' => $row['user_allow_massemail'] );
 
 			// Profile
@@ -480,21 +478,21 @@ class admin_convert_board_phpbb_legacy extends ipsCommand
 			// Uploaded
 			if ($row['user_avatar_type'] == 1)
 			{
-				$profile['photo_type'] = 'custom';
-				$profile['photo_location'] = $row['user_avatar'];
+				$profile['avatar_type'] = 'upload';
+				$profile['avatar_location'] = $row['user_avatar'];
 				$path = $us['pp_path'];
 			}
 			// URL
 			elseif ($row['user_avatar_type'] == 2)
 			{
-				$profile['photo_type'] = 'url';
-				$profile['photo_location'] = $row['user_avatar'];
+				$profile['avatar_type'] = 'url';
+				$profile['avatar_location'] = $row['user_avatar'];
 			}
 			// Gallery
 			elseif ($row['user_avatar_type'] == 3)
 			{
-				$profile['photo_type'] = 'custom';
-				$profile['photo_location'] = $row['user_avatar'];
+				$profile['avatar_type'] = 'upload';
+				$profile['avatar_location'] = $row['user_avatar'];
 				$path = $us['gal_path'];
 			}
 
@@ -531,7 +529,7 @@ class admin_convert_board_phpbb_legacy extends ipsCommand
 						'from' 		=> $this->nukedPrefix . 'categories',
 						'order'		=> 'cat_id ASC' );
 
-		$loop = $this->lib->load('forums', $main, array('forum_tracker'), array(), TRUE );
+		$loop = $this->lib->load('forums', $main, array(), array(), TRUE );
 
 		$this->lib->getMoreInfo('forums', $loop, $ask);
 
@@ -545,8 +543,7 @@ class admin_convert_board_phpbb_legacy extends ipsCommand
 						   'position'	   => $row['cat_order'],
 						   'name'		   => $row['cat_title'],
 						   'inc_postcount' => 1,
-						   'sub_can_post'  => 0,
-						   'status'		   => 1 );
+						   'sub_can_post'  => 0 );
 			// Save
 			$this->lib->convertForum('C_'.$row['cat_id'], $save, array());
 		}
@@ -571,7 +568,6 @@ class admin_convert_board_phpbb_legacy extends ipsCommand
 						   'sub_can_post'	=> 1,
 						   'redirect_on'	=> 0,
 						   'redirect_hits' => 0,
-						   'status'		=> ($row['forum_status'] == 1) ? 0 : 1,
 						   'posts'			=> $row['forum_posts'],
 						   'topics'		=> $row['forum_topics'],
 						   'inc_postcount'		=> 1,
@@ -597,12 +593,12 @@ class admin_convert_board_phpbb_legacy extends ipsCommand
 		$main = array( 'select' 	=> 't.*',
 						'from' 		=> array( $this->nukedPrefix . 'topics' => 't' ),
 						'add_join' => array( array( 'select'	=> 'u.username as topic_first_poster_name',
-													'from' 		=> array( $this->nukedPrefix . 'users' => 'u'),
+													'from' 		=> array( 'users' => 'u'),
 													'where'		=> 't.topic_poster = u.user_id',
 													'type'		=> 'left' ) ),
 						'order'		=> 't.topic_id ASC' );
 
-		$loop = $this->lib->load('topics', $main, array('tracker'));
+		$loop = $this->lib->load('topics', $main, array());
 
 		//---------------------------
 		// Loop
@@ -638,7 +634,7 @@ class admin_convert_board_phpbb_legacy extends ipsCommand
 
 			ipsRegistry::DB('hb')->build(array('select' => '*', 'from' => $this->nukedPrefix . 'topics_watch', 'where' => "topic_id={$row['topic_id']}"));
 			ipsRegistry::DB('hb')->execute();
-			while ($tracker = ipsRegistry::DB('hb')->fetch())
+			while ( FALSE && $tracker = ipsRegistry::DB('hb')->fetch())
 			{
 				$savetracker = array( 'member_id'	=> $tracker['user_id'],
 									  'topic_id'	=> $tracker['topic_id'] );
@@ -666,7 +662,7 @@ class admin_convert_board_phpbb_legacy extends ipsCommand
 														'where'		=> 'p.post_id = pt.post_id',
 														'type'		=> 'left' ),
 											  array( 'select'	=> 'u.username, u.user_id',
-														'from' 		=> array( $this->nukedPrefix . 'users' => 'u'),
+														'from' 		=> array( 'users' => 'u'),
 														'where'		=> 'p.poster_id = u.user_id',
 														'type'		=> 'left' )
 											),
@@ -687,8 +683,7 @@ class admin_convert_board_phpbb_legacy extends ipsCommand
 							'post_date'   => $row['post_time'],
 							'post'		  => $this->fixPostData($row['post_text']),
 							'queued'      => 0,
-							'topic_id'    => $row['topic_id'],
-							'post_title'  => $row['post_subject'] );
+							'topic_id'    => $row['topic_id'] );
 
 			$this->lib->convertPost($row['post_id'], $save);
 		}
@@ -816,7 +811,9 @@ class admin_convert_board_phpbb_legacy extends ipsCommand
 
 		while ( $row = ipsRegistry::DB('hb')->fetch($this->lib->queryRes) )
 		{
-
+			// Skip messages to ourselves
+			if ( $row['privmsgs_from_userid'] == $row['privmsgs_to_userid'] ) { continue; }
+			
 			//-----------------------------------------
 			// Post Data
 			//-----------------------------------------
@@ -834,29 +831,35 @@ class admin_convert_board_phpbb_legacy extends ipsCommand
 			//-----------------------------------------
 			// Map Data
 			//-----------------------------------------
-			$maps = array(
-				array(
-				'map_user_id'     => $row['privmsgs_to_userid'],
-				'map_topic_id'    => $row['privmsgs_id'],
-				'map_folder_id'   => 'myconvo',
-				'map_read_time'   => 0,
-				'map_last_topic_reply' => $row['privmsgs_date'],
-				'map_user_active' => 1,
-				'map_user_banned' => 0,
-				'map_has_unread'  => 0,
-				'map_is_system'   => 0,
-				'map_is_starter'  => 0
-				)
-			);
+			$maps = array( array( 'map_user_id'     => $row['privmsgs_to_userid'],
+								  'map_topic_id'    => $row['privmsgs_id'],
+								  'map_folder_id'   => 'myconvo',
+								  'map_read_time'   => 0,
+								  'map_last_topic_reply' => $row['privmsgs_date'],
+								  'map_user_active' => 1,
+								  'map_user_banned' => 0,
+								  'map_has_unread'  => 0,
+								  'map_is_system'   => 0,
+								  'map_is_starter'  => 0 ),
+						   array( 'map_user_id'     => $row['privmsgs_from_userid'],
+								  'map_topic_id'    => $row['privmsgs_id'],
+								  'map_folder_id'   => 'myconvo',
+								  'map_read_time'   => 0,
+								  'map_last_topic_reply' => $row['privmsgs_date'],
+								  'map_user_active' => 1,
+								  'map_user_banned' => 0,
+								  'map_has_unread'  => 0,
+								  'map_is_system'   => 0,
+								  'map_is_starter'  => 1 ) );
 
 			$topic = array(
-				'mt_id'			     => $row['privmsgs_to_userid'],
+				'mt_id'			     => $row['privmsgs_id'],
 				'mt_date'		     => $row['privmsgs_date'],
 				'mt_title'		     => $row['privmsgs_subject'],
 				'mt_starter_id'	     => $row['privmsgs_from_userid'],
 				'mt_start_time'      => $row['privmsgs_date'],
 				'mt_last_post_time'  => $row['privmsgs_date'],
-				'mt_invited_members' => serialize( array( $row['privmsgs_to_userid'] => $row['privmsgs_to_userid'] ) ),
+				'mt_invited_members' => serialize( array() ),
 				'mt_to_count'		 => 1,
 				'mt_to_member_id'	 => $row['privmsgs_to_userid'],
 				'mt_replies'		 => 0,

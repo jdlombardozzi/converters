@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * MyBB
- * Last Update: $Date: 2011-07-12 21:15:48 +0100 (Tue, 12 Jul 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2009-11-25 16:43:59 +0100(mer, 25 nov 2009) $
+ * Last Updated By: $Author: mark $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 550 $
+ * @version		$Revision: 391 $
  */
 
 $info = array( 'key'   => 'cs',
@@ -419,10 +419,10 @@ class admin_convert_board_cs extends ipsCommand
 			$avatar = ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => 'Length, ContentType, Content', 'from' => 'cs_UserAvatar', 'where' => "UserId='{$row['UserID']}'" ) );
 			if ( $avatar != '' )
 			{
-				$profile['photo_type'] = 'custom';
-				$profile['photo_location'] = str_replace('/','.', strtolower($avatar['ContentType']));
-				$profile['photo_data'] = $avatar['Content'];
-				$profile['photo_filesize'] = $avatar['Length'];
+				$profile['avatar_type'] = 'upload';
+				$profile['avatar_location'] = str_replace('/','.', strtolower($avatar['ContentType']));
+				$profile['avatar_data'] = $avatar['Content'];
+				$profile['avatar_filesize'] = $avatar['Length'];
 			}
 
 			//-----------------------------------------
@@ -676,7 +676,6 @@ class admin_convert_board_cs extends ipsCommand
 		{
 			$this->lib->setLastKeyValue($row['PostID']);
 			$save = array( 'topic_id'    => intval($row['ThreadID']),
-						   'post_title'  	=> $row['Subject'],
 						   'author_id'	 => intval($row['UserID']),
 						   'author_name' => $row['PostAuthor'],
 						   'post_date'	 => $this->lib->myStrToTime($row['PostDate']),

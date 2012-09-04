@@ -3,7 +3,7 @@
  * IPS Converters
  * IP.Gallery 3.0 Converters
  * Coppermine Photo Gallery
- * Last Update: $Date: 2011-06-08 17:44:41 +0100 (Wed, 08 Jun 2011) $
+ * Last Update: $Date: 2011-06-08 12:44:41 -0400 (Wed, 08 Jun 2011) $
  * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters

@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * SMF
- * Last Update: $Date: 2011-07-12 21:15:48 +0100 (Tue, 12 Jul 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2009-12-06 08:57:22 -0500 (Sun, 06 Dec 2009) $
+ * Last Updated By: $Author: terabyte $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 550 $
+ * @version		$Revision: 397 $
  */
 
 $info = array( 'key'	=> 'smf',
@@ -447,14 +447,14 @@ class admin_convert_board_smf extends ipsCommand
 				// URL
 				if (preg_match('/http/', $row['avatar']))
 				{
-					$profile['photo_type'] = 'url';
-					$profile['photo_location'] = $row['avatar'];
+					$profile['avatar_type'] = 'url';
+					$profile['avatar_location'] = $row['avatar'];
 				}
 				// Gallery
 				else
 				{
-					$profile['photo_type'] = 'custom';
-					$profile['photo_location'] = $row['avatar'];
+					$profile['avatar_type'] = 'upload';
+					$profile['avatar_location'] = $row['avatar'];
 					$path = $us['gal_path'];
 				}
 			}

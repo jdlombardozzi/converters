@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * FusionBB
- * Last Update: $Date: 2011-07-12 21:15:48 +0100 (Tue, 12 Jul 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2010-03-19 11:03:12 +0100(ven, 19 mar 2010) $
+ * Last Updated By: $Author: terabyte $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 550 $
+ * @version		$Revision: 437 $
  */
 
 $info = array( 'key'	=> 'fusionbb',
@@ -39,7 +39,7 @@ class admin_convert_board_fusionbb extends ipsCommand
 			'emoticons'		=> array(),
 			'forum_perms'	=> array(),
 			'groups' 		=> array('forum_perms'),
-			'members'		=> array('groups', 'custom_bbcode'),
+                'members'		=> array('groups', 'custom_bbcode'),
 			'ignored_users'	=> array('members'),
 			'profile_friends' => array('members'),
 			'forums'		=> array('forum_perms'),
@@ -492,28 +492,25 @@ class admin_convert_board_fusionbb extends ipsCommand
 			// Gallery
 			if ($row['info_avatar_type'] == 1)
 			{
-				$profile['photo_type']		= 'custom';
-				$profile['photo_location']	= $row['info_avatar'];
-				$profile['pp_main_width']	= $row['info_avatar_width'];
-				$profile['pp_main_height']	= $row['info_avatar_height'];
-				$path = $us['gal_path'];
+			  $profile['avatar_type'] = 'upload';
+			  $profile['avatar_location'] = $row['info_avatar'];
+			  $profile['avatar_size'] = $row['info_avatar_width'].'x'.$row['info_avatar_height'];
+			  $path = $us['gal_path'];
 			}
 			// Uploaded
 			elseif ($row['info_avatar_type'] == 2)
 			{
-				$profile['photo_type']		= 'custom';
-				$profile['photo_location']	= $row['info_avatar'];
-				$profile['pp_main_width']	= $row['info_avatar_width'];
-				$profile['pp_main_height']	= $row['info_avatar_height'];
+				$profile['avatar_type'] = 'upload';
+				$profile['avatar_location'] = $row['info_avatar'];
+				$profile['avatar_size'] = $row['info_avatar_width'].'x'.$row['info_avatar_height'];
 				$path = $us['pp_path'];
 			}
 			// URL
 			elseif ($row['info_avatar_type'] == 3)
 			{
-				$profile['photo_type']		= 'url';
-				$profile['photo_location']	= $row['info_avatar'];
-				$profile['pp_main_width']	= $row['info_avatar_width'];
-				$profile['pp_main_height']	= $row['info_avatar_height'];
+				$profile['avatar_type'] = 'url';
+				$profile['avatar_location'] = $row['info_avatar'];
+				$profile['avatar_size'] = $row['info_avatar_width'].'x'.$row['info_avatar_height'];
 			}
 
 			//-----------------------------------------

@@ -3,7 +3,7 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * XenForo
- * Last Updated By: $Author: AlexHobbs $
+ * Last Updated By: $Author: AndyMillne $
  *
  * @package		IPS Converters
  * @author 		Andrew Millne
@@ -36,16 +36,14 @@
 
 			// array('action' => array('action that must be completed first'))
 			$this->actions = array(
-				'emoticons'					=> array(),
-				'forum_perms'				=> array(),
-				'groups'					=> array('forum_perms'),
-				'members'					=> array('groups'),
-				'profile_comments'			=> array ( 'members' ),
-				'profile_comment_replies'	=> array ( 'members', 'profile_comments' ),
-				'forums'					=> array(),
-				'topics'					=> array('forums'),
-				'posts'						=> array('topics', 'emoticons'),
-				'attachments'				=> array('posts'),
+				'emoticons'		=> array(),
+				'forum_perms' => array(),
+				'groups'	=> array('forum_perms'),
+				'members'	=> array('groups'),
+				'forums'	=> array(),
+				'topics'	=> array('forums'),
+				'posts'		=> array('topics', 'emoticons'),
+				'attachments'=> array('posts'),
 				);
 
 			//-----------------------------------------
@@ -141,13 +139,6 @@
 					return $this->lib->countRows('smilie');
 					break;
 
-				case 'profile_comments':
-					return $this->lib->countRows ( 'profile_post' );
-				break;
-				
-				case 'profile_comment_replies':
-					return $this->lib->countRows ( 'profile_post_comment' );
-				break;
 
 				default:
 					return $this->lib->countRows($action);
@@ -360,7 +351,7 @@
 				'msn'			=> 'MSN ID',			
 				);
 
-			$this->lib->saveMoreInfo( 'members', array_merge( array_keys($pcpf), array( 'pp_path' ) ) );
+			$this->lib->saveMoreInfo( 'members', array_merge( array_keys($pcpf), array( 'avvy_path', 'pp_path' ) ) );
 
 			//---------------------------
 			// Set up
@@ -395,7 +386,7 @@
 			$ask = array();
 
 			// We need to know the avatars path
-			$ask['pp_path'] = array('type' => 'text', 'label' => 'The path to the folder where custom avatars are saved (no trailing slash - usually /path_to_xf/data/avatars):');
+			$ask['avvy_path'] = array('type' => 'text', 'label' => 'The path to the folder where custom avatars are saved (no trailing slash - usually /path_to_xf/data/avatars):');
 			
 			// And those custom profile fields
 			$options = array('x' => '-Skip-');
@@ -482,14 +473,13 @@
 				
 				$group = floor($row['user_id'] / 1000);
 				
-				if (file_exists($us['pp_path'] . "l/{$group}/{$row['user_id']}.jpg")) {
+				if (file_exists($us['avvy_path'] . "l/{$group}/{$row['user_id']}.jpg")) {
 					
-					$profile['photo_type'] = 'custom';
+					$profile['avatar_type'] = 'upload';
 
-					$profile['pp_main_photo'] = "l/{$group}/{$row['user_id']}.jpg";
-					$profile['pp_main_width'] = $row['avatar_width'];
-					$profile['pp_main_height'] = $row['avatar_height'];
-					$profile['photo_filesize'] = filesize($us['pp_path'] . "l/{$group}/{$row['user_id']}.jpg");
+					$profile['avatar_location'] = "l/{$group}/{$row['user_id']}.jpg";
+					$profile['avatar_size'] = $row['avatar_width'] . 'x' . $row['avatar_height'];
+					$profile['avatar_filesize'] = filesize($us['avvy_path'] . "l/{$group}/{$row['user_id']}.jpg");
 				}
 
 
@@ -497,75 +487,12 @@
 				// Go
 				//-----------------------------------------
 
-				$this->lib->convertMember($info, $members, $profile, $custom, $us['pp_path']);
+				$this->lib->convertMember($info, $members, $profile, $custom, $us['avvy_path']);
 
 			}
 
 			$this->lib->next();
 
-		}
-
-		/**
-		 * Convert Profile Comments
-		 *
-		 * @access	private
-		 * @return void
-		 **/
-		private function convert_profile_comments ( )
-		{
-			$main = array (
-				'select'	=> '*',
-				'from'		=> 'profile_post',
-				'order'		=> 'profile_post_id ASC',
-			);
-			
-			$loop = $this->lib->load ( 'profile_comments', $main );
-			
-			while ( $row = ipsRegistry::DB ( 'hb' )->fetch ( $this->lib->queryRes ) )
-			{
-				$save = array (
-					'status_member_id'	=> $row['profile_user_id'],
-					'status_author_id'	=> $row['user_id'],
-					'status_date'		=> $row['post_date'],
-					'status_content'	=> $this->fixPostData ( $row['message'] ),
-					'status_approved'	=> ( $row['message_state'] == 'visible' ? 1 : 0 ),
-				);
-				
-				$this->lib->convertProfileComment ( $row['profile_post_id'], $save );
-			}
-			
-			$this->lib->next ( );
-		}
-		
-		/**
-		 * Convert Profile Comment Replies
-		 * 
-		 * @access private
-		 * @return void
-		 */
-		private function convert_profile_comment_replies ( )
-		{
-			$main = array (
-				'select'	=> '*',
-				'from'		=> 'profile_post_comment',
-				'order'		=> 'profile_post_comment_id ASC',
-			);
-			
-			$loop = $this->lib->load ( 'profile_comment_replies', $main );
-			
-			while ( $row = ipsRegistry::DB ( 'hb' )->fetch ( $this->lib->queryRes ) )
-			{
-				$save = array (
-					'reply_status_id'	=> $row['profile_post_id'],
-					'reply_member_id'	=> $row['user_id'],
-					'reply_date'		=> $row['comment_date'],
-					'reply_content'		=> $row['message'],
-				);
-				
-				$this->lib->convertProfileCommentReply ( $row['profile_post_comment_id'], $save );
-			}
-			
-			$this->lib->next ( );
 		}
 
 		/**
@@ -887,12 +814,6 @@
 				{
 					$image = true;
 				}
-				
-				// Need to grab the topic ID
-				$topicid	= ipsRegistry::DB('hb')->buildAndFetch( array( 'select' => 'thread_id', 'from' => 'post', 'where' => "pid='" . intval( $row['content_id'] ) . "'" ) );
-				
-				// Grab our real id
-				$ipbTopic	= $this->lib->getLink( $topicid['thread_id'], 'topics' );
 
 				$save = array(
 					'attach_ext'			=> $extension,
@@ -904,7 +825,6 @@
 					'attach_filesize'		=> $filedata['file_size'],
 					'attach_rel_id'			=> $row['content_id'],
 					'attach_rel_module'		=> 'post',
-					'attach_parent_id'		=> $ipbTopic
 					);
 
 

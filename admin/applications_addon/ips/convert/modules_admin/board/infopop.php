@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * InfoPop
- * Last Update: $Date: 2011-07-12 21:15:48 +0100 (Tue, 12 Jul 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2009-11-25 16:43:59 +0100(mer, 25 nov 2009) $
+ * Last Updated By: $Author: mark $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 550 $
+ * @version		$Revision: 391 $
  */
 
 $info = array( 'key'   => 'infopop',
@@ -518,8 +518,8 @@ AND t.is_topic_archived =0*/
 			//-----------------------------------------
 			if ( $row['AVATAR_URL'] != '' )
 			{
-				$profile['photo_type'] = 'url';
-				$profile['photo_location'] = $row['AVATAR_URL'];
+				$profile['avatar_type'] = 'url';
+				$profile['avatar_location'] = $row['AVATAR_URL'];
 			}
 			
 			ipsRegistry::DB('hb')->build( array( 'select' => 'PROFILE_FIELD_NAME, PROFILE_FIELD_VALUE',

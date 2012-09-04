@@ -3,14 +3,14 @@
  * IPS Converters
  * Application Files
  * Library functions for IP.Board 3.0 conversions
- * Last Update: $Date: 2011-07-31 13:28:48 +0100 (Sun, 31 Jul 2011) $
- * Last Updated By: $Author: AlexHobbs $
+ * Last Update: $Date: 2011-05-11 11:44:04 -0400 (Wed, 11 May 2011) $
+ * Last Updated By: $Author: rashbrook $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 571 $
+ * @version		$Revision: 525 $
  */
 
 	class lib_board extends lib_master
@@ -229,22 +229,13 @@
 					break;
 
 				case 'profile_comments':
-					$count = $this->DB->buildAndFetch( array( 'select' => 'COUNT(*) as count', 'from' => 'member_status_updates' ) );
+					$count = $this->DB->buildAndFetch( array( 'select' => 'COUNT(*) as count', 'from' => 'profile_comments' ) );
 					$return = array(
-						'name'	=> 'Profile Comments and Status Updates',
+						'name'	=> 'Profile Comments',
 						'rows'	=> $count['count'],
 						'cycle'	=> 2000,
 					);
 					break;
-					
-				case 'profile_comment_replies':
-					$count = $this->DB->buildAndFetch ( array ( 'select' => 'COUNT(*) as count', 'from' => 'member_status_replies' ) );
-					$return = array (
-						'name'	=> 'Profile Comment/Status Replies',
-						'rows'	=> $count['count'],
-						'cycle'	=> 2000,
-					);
-				break;
 
 				case 'profile_friends':
 					$count = $this->DB->buildAndFetch( array( 'select' => 'COUNT(*) as count', 'from' => 'profile_friends' ) );
@@ -373,6 +364,10 @@
 					return array( 'forums' => 'id', 'permission_index' => 'perm_id' );
 					break;
 
+				case 'forum_tracker':
+					return array( 'forum_tracker' => 'frid' );
+					break;
+
 				case 'moderators':
 					return array( 'moderators' => 'mid' );
 					break;
@@ -391,6 +386,10 @@
 
 				case 'topics':
 					return array( 'topics' => 'tid' );
+					break;
+
+				case 'tracker':
+					return array( 'tracker' => 'trid' );
 					break;
 
 				case 'posts':
@@ -466,12 +465,8 @@
 					break;
 
 				case 'profile_comments':
-					return array( 'member_status_updates' => 'status_id' );
+					return array( 'profile_comments' => 'comment_id' );
 					break;
-				
-				case 'profile_comment_replies':
-					return array ( 'member_status_replies' => 'reply_id' );
-				break;
 
 				case 'profile_friends':
 					return array( 'profile_friends' => 'friends_id' );
@@ -512,11 +507,6 @@
 				case 'warn_logs':
 					return array( 'warn_logs' => 'wlog_id' );
 					break;
-				
-				case 'forum_tracker':
-				case 'tracker':
-					return array();
-				break;
 
 				default:
 					$this->error('There is a problem with the converter: bad truncate command ('.$action.')');
@@ -668,9 +658,6 @@
 			// MSSQL makes me want to cry...
 			$info['min_posts_view'] = $info['min_posts_view'] ? $info['min_posts_view'] : 0;
 			$info['min_posts_post'] = $info['min_posts_post'] ? $info['min_posts_post'] : 0;
-			
-			// Legacy 3.1 column. Just in case I miss removing them from somewhere.
-			unset ( $info['status'] );
 
 			// And do it!
 			unset($info['id']);
@@ -1327,6 +1314,12 @@
 				$this->logError($topic['mt_id'], 'Recipient not found.');
 				return false;
 			}
+			
+			if ($topic['mt_to_member_id'] == $topic['mt_starter_id'])
+			{
+				$this->logError($topic['mt_id'], 'Recipient cannot be the same as the sender.');
+				return false;
+			}
 
 			$tid = $topic['mt_id'];
 			unset($topic['mt_id']);
@@ -1426,18 +1419,6 @@
 
 				$map['map_user_id'] = $this->getLink($map['map_user_id'], 'members');
 				$map['map_topic_id'] = $this->getLink($map['map_topic_id'], 'pms');
-				
-				// Check if map already exists.
-				$map = $this->DB->buildAndFetch ( array (
-					'select'	=> '*',
-					'from'		=> 'message_topic_user_map',
-					'where'		=> 'map_user_id = ' . $map['map_user_id'] . ' AND  map_topic_id = ' . $map['map_topic_id']
-				) );
-				if ( $map )
-				{
-					$this->logError ( $map['map_id'], '(PM MAP) PM Map Already Exists.' );
-					continue;
-				}
 
 				if (!$map['map_user_id'])
 				{
@@ -1813,7 +1794,13 @@
 			{
 				$info['ban_date'] = time();
 			}
-			
+
+			//-----------------------------------------
+			// Insert
+			//-----------------------------------------
+
+			$info['ban_nocache'] = '0';
+
 			unset($info['ban_id']);
 			$this->DB->insert( 'banfilters', $info );
 			$inserted_id = $this->DB->getInsertId();
@@ -1884,15 +1871,8 @@
 			//-----------------------------------------
 			// Make sure we have everything we need
 			//-----------------------------------------
-			
-			$this->convertFollow ( array (
-				'like_app'			=> 'forums',
-				'like_area'			=> 'forums',
-				'like_rel_id'		=> $this->getLink( $info['forum_id'], 'forums' ),
-				'like_member_id'	=> $this->getLink( $info['member_id'], 'members' ),
-			) );
 
-			/*if (!$id)
+			if (!$id)
 			{
 				$this->logError($id, 'No Forum Subscription ID number provided');
 				return false;
@@ -1916,14 +1896,14 @@
 			$info['forum_id'] = $this->getLink($info['forum_id'], 'forums');
 
 			unset($info['frid']);
-			$this->DB->insert( 'forum_tracker', $info );
-			$inserted_id = $this->DB->getInsertId();
+			#$this->DB->insert( 'forum_tracker', $info );
+			#$inserted_id = $this->DB->getInsertId();
 
 			//-----------------------------------------
 			// Add link
 			//-----------------------------------------
 
-			$this->addLink($inserted_id, $id, 'forum_tracker');*/
+			#$this->addLink($inserted_id, $id, 'forum_tracker');
 
 			return true;
 		}
@@ -1941,15 +1921,8 @@
 			//-----------------------------------------
 			// Make sure we have everything we need
 			//-----------------------------------------
-			
-			$this->convertFollow ( array (
-				'like_app'			=> 'forums',
-				'like_area'			=> 'topics',
-				'like_rel_id'		=> $info['topic_id'],
-				'like_member_id'	=> $info['member_id'],
-			) );
 
-			/*if (!$id)
+			if (!$id)
 			{
 				$this->logError($id, 'No ID number provided');
 				return false;
@@ -1992,7 +1965,7 @@
 			// Add link
 			//-----------------------------------------
 
-			$this->addLink($inserted_id, $id, 'tracker');*/
+			$this->addLink($inserted_id, $id, 'tracker');
 
 			return true;
 		}
@@ -2219,17 +2192,17 @@
 				$this->logError($id, 'No ID number provided');
 				return false;
 			}
-			if (!$info['status_member_id'])
+			if (!$info['comment_for_member_id'])
 			{
 				$this->logError($id, 'No member ID provided');
 				return false;
 			}
-			if (!$info['status_author_id'])
+			if (!$info['comment_by_member_id'])
 			{
 				$this->logError($id, 'No author ID provided');
 				return false;
 			}
-			if (!$info['status_content'])
+			if (!$info['comment_content'])
 			{
 				$this->logError($id, 'No comment provided');
 				return false;
@@ -2239,11 +2212,11 @@
 			// Insert
 			//-----------------------------------------
 
-			$info['status_member_id'] = $this->getLink($info['status_member_id'], 'members');
-			$info['status_author_id'] = $this->getLink($info['status_author_id'], 'members');
+			$info['comment_for_member_id'] = $this->getLink($info['comment_for_member_id'], 'members');
+			$info['comment_by_member_id'] = $this->getLink($info['comment_by_member_id'], 'members');
 
-			unset($info['status_id']);
-			$this->DB->insert( 'member_status_updates', $info );
+			unset($info['comment_id']);
+			$this->DB->insert( 'profile_comments', $info );
 			$inserted_id = $this->DB->getInsertId();
 
 			//-----------------------------------------
@@ -2254,57 +2227,6 @@
 
 			return true;
 		}
-		
-		/**
-		 * Convert profile comment replies
-		 *
-		 * @access	public
-		 * @param 	integer		Foreign ID number
-		 * @param 	array 		Data to insert to table
-		 * @return 	boolean		Success or fail
-		 **/
-		public function convertProfileCommentReply ( $id, $info )
-		{
-			if ( !$id )
-			{
-				$this->logError ( $id, 'No Reply ID provided.' );
-				return false;
-			}
-			
-			if ( !$info['reply_status_id'] )
-			{
-				$this->logError ( $id, 'No Comment/Status ID Provided.' );
-				return false;
-			}
-			
-			if ( !$info['reply_member_id'] )
-			{
-				$this->logError ( $id, 'No Reply Member ID provided.' );
-				return false;
-			}
-			
-			if ( !$info['reply_content'] )
-			{
-				$this->logError ( $id, 'No Reply Content provided.' );
-				return false;
-			}
-			
-			// Yay links!
-			$info['reply_status_id']	= $this->getLink ( $info['reply_status_id'], 'profile_comments' );
-			$info['reply_member_id']	= $this->getLink ( $info['reply_member_id'], 'members' );
-			
-			// ... aaaaaaand insert.
-			unset ( $info['reply_id'] );
-			$this->DB->insert ( 'member_status_replies', $info );
-			$inserted_id = $this->DB->getInsertId ( );
-			
-			// Add our link.
-			$this->addLink ( $inserted_id, $id, 'profile_comment_replies' );
-			
-			// And we're done!
-			return true;
-		}
-
 
 		/**
 		 * Convert friends

@@ -3,14 +3,14 @@
  * IPS Converters
  * IP.Board 3.0 Converters
  * WebWiz
- * Last Update: $Date: 2011-07-12 21:15:48 +0100 (Tue, 12 Jul 2011) $
- * Last Updated By: $Author: rashbrook $
+ * Last Update: $Date: 2010-07-22 11:29:06 +0200(gio, 22 lug 2010) $
+ * Last Updated By: $Author: terabyte $
  *
  * @package		IPS Converters
  * @author 		Mark Wade
  * @copyright	(c) 2009 Invision Power Services, Inc.
  * @link		http://external.ipslink.com/ipboard30/landing/?p=converthelp
- * @version		$Revision: 550 $
+ * @version		$Revision: 447 $
  */
 
 $info = array( 'key'   => 'webwiz',
@@ -384,14 +384,14 @@ class admin_convert_board_webwiz extends ipsCommand
 				// URL
 				if (preg_match('/http/', $row['Avatar']))
 				{
-					$profile['photo_type'] = 'url';
-					$profile['photo_location'] = $row['Avatar'];
+					$profile['avatar_type'] = 'url';
+					$profile['avatar_location'] = $row['Avatar'];
 				}
 				// Gallery
 				else
 				{
-					$profile['photo_type'] = 'custom';
-					$profile['pp_main_photo'] = $row['Avatar'];
+					$profile['avatar_type'] = 'upload';
+					$profile['avatar_location'] = $row['Avatar'];
 					$path = $us['dirpath'];
 				}
 			}
