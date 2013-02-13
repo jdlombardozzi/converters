@@ -74,7 +74,7 @@ $IPBHTML .= <<<HTML
 <div class='information-box'>
 <h3>Select which application you would like to convert to:</h3>
 <ul><br />
-	<li><img src="{$this->settings['skin_acp_url']}/images/applications/core.png" /> <a href='{$this->settings['base_url']}module=setup&amp;section=setup&amp;do=save&amp;sw=board'>IP.Board</a></li><br />
+	<li><img src="{$this->settings['skin_acp_url']}/images/applications/core.png" /> <a href='{$this->settings['base_url']}module=instances&amp;do=add&amp;step=2&amp;sw=board'>IP.Board</a></li><br />
 	{$extra}
 </ul>
 </div>
@@ -102,7 +102,7 @@ $IPBHTML = "";
 //--starthtml--//
 
 $IPBHTML .= <<<HTML
-<li>{$image} <a href='{$this->settings['base_url']}module=setup&amp;section=setup&amp;do=save&amp;sw={$key}'>{$name}</a></li><br />
+<li>{$image} <a href='{$this->settings['base_url']}module=instances&ampdo=save&amp;step=2&amp;sw={$key}'>{$name}</a></li><br />
 HTML;
 
 //--endhtml--//
@@ -122,8 +122,7 @@ $IPBHTML .= <<<HTML
 
 <div class='acp-box'>
 	<h3>Convert</h3>
-	<form action='{$this->settings['base_url']}&amp;app=convert&amp;module=setup&amp;section=setup' method='post'>
-		<input type='hidden' name='do' value='info'>
+  <form action='{$this->settings['base_url']}module=instances&amp;do=add&amp;step=3' method='post'>
 		<input type='hidden' name='sw' value='{$this->request['sw']}'>
 		<input type='hidden' name='parent' value='0'>
 		<table class='ipsTable double_pad'>
@@ -263,8 +262,7 @@ $IPBHTML .= <<<HTML
 
 <div class='acp-box'>
 	<h3>Convert</h3>
-	<form action='{$this->settings['base_url']}&amp;app=convert&amp;module=setup&amp;section=setup' method='post'>
-		<input type='hidden' name='do' value='convert' />
+	<form action='{$this->settings['base_url']}&amp;app=convert&amp;module=instances&amp;do=create' method='post'>
 		<input type='hidden' name='sw' value='{$this->request['sw']}' />
 		<input type='hidden' name='parent' value='{$this->request['parent']}' />
 		<input type='hidden' name='choice' value='{$this->request['choice']}' />
@@ -299,8 +297,7 @@ $IPBHTML .= <<<HTML
 
 <div class='acp-box'>
 	<h3>Convert</h3>
-	<form action='{$this->settings['base_url']}&amp;app=convert&amp;module=setup&amp;section=setup' method='post'>
-		<input type='hidden' name='do' value='info'>
+	<form action='{$this->settings['base_url']}module=instances&amp;do=create' method='post'>
 		<input type='hidden' name='sw' value='{$this->request['sw']}'>
 		<input type='hidden' name='app_name' value='{$this->request['app_name']}'>
 		<input type='hidden' name='hb_sql_driver' value='{$this->request['hb_sql_driver']}'>
@@ -344,13 +341,12 @@ $IPBHTML .= <<<HTML
 
 <div class='acp-box'>
 	<h3>Convert</h3>
-	<form action='{$this->settings['base_url']}&amp;app=convert&amp;module=setup&amp;section=continue' method='post'>
-		<input type='hidden' name='do' value='save'>
+	<form action='{$this->settings['base_url']}module=instances&amp;do=show' method='post'>
 		<table class='ipsTable double_pad'>
 			<tr><th>Select the conversion you would like to continue...</th></tr>
 			<tr>
 				<td>
-					<select name='choice'>
+					<select name='id'>
 						{$options}
 					</select>
 				</td>
